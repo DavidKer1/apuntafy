@@ -12,6 +12,7 @@ on:
 
 jobs:
   performance-tests:
+    if: github.repository == 'DavidKer1/apuntafy'
     runs-on: ubuntu-latest
     env:
       BASE_URL: ${{ github.event.inputs.base_url || 'https://cal.dev' }}

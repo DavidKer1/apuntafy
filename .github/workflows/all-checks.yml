@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   type-check:
+    if: github.repository == 'DavidKer1/apuntafy'
     name: Type check
     uses: ./.github/workflows/check-types.yml
     secrets: inherit

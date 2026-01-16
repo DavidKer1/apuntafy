@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened]
     branches:
       - main
-      - gh-actions-test-branch
+      - develop
 
   workflow_dispatch:
 
@@ -22,6 +22,7 @@ jobs:
   # Security gate: Check if PR is from a trusted contributor or approved via run-ci label
   # This MUST run before any job that checks out PR code and executes it with secrets
   trust-check:
+    if: github.repository == 'DavidKer1/apuntafy'
     name: Trust Check
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:

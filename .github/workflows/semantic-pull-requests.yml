@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   validate-pr:
+    if: github.repository == 'DavidKer1/apuntafy'
     name: Validate PR title
     runs-on: ubuntu-latest
     steps:

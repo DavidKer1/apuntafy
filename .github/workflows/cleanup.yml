@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   delete_reports:
+    if: github.repository == 'DavidKer1/apuntafy'
     name: Delete Reports
     runs-on: ubuntu-latest
     env:

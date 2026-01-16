@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
 jobs:
   stale:
+    if: github.repository == 'DavidKer1/apuntafy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/stale@v7

@@ -2,13 +2,14 @@ name: Run i18n AI automation
 on:
   push:
     branches:
-      - main
+      - develop
 concurrency:
-  group: ${{ github.workflow }}-main
+  group: ${{ github.workflow }}-develop
   cancel-in-progress: false
 
 jobs:
   i18n:
+    if: github.repository == 'DavidKer1/apuntafy'
     name: Run i18n
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
@@ -22,7 +23,7 @@ jobs:
         with:
           app-id: ${{ secrets.CI_CAL_APP_ID }}
           private-key: ${{ secrets.CI_CAL_APP_PRIVATE_KEY }}
-          repositories: 'cal.com'
+          repositories: 'apuntafy'
 
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
