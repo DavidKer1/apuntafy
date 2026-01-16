@@ -11,7 +11,7 @@ on:
 
 jobs:
   manually-delete-blacksmith-cache:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.repository == 'DavidKer1/apuntafy' && github.event_name == 'workflow_dispatch'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Checkout
@@ -21,7 +21,7 @@ jobs:
           key: ${{ inputs.cache_key }}
 
   delete-cache-build-on-pr-close:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.repository == 'DavidKer1/apuntafy' && github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     env:
       CACHE_NAME: prod-build

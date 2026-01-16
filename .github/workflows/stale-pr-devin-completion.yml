@@ -20,8 +20,9 @@ jobs:
     # For labeled events: only run if 'Stale' label was added
     # For workflow_dispatch: always run (we'll validate the PR in the steps)
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event.label.name == 'Stale'
+      github.repository == 'DavidKer1/apuntafy' &&
+      (github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'Stale')
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - name: Get PR details
@@ -102,7 +103,7 @@ jobs:
               issue_number: prNumber
             });
 
-            const alreadyRequested = comments.data.some(comment => 
+            const alreadyRequested = comments.data.some(comment =>
               comment.body?.includes('### Maintainer Access Needed')
             );
 

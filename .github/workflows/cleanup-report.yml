@@ -9,6 +9,7 @@ permissions:
   pull-requests: write
 jobs:
   cleanup-report:
+    if: github.repository == 'DavidKer1/apuntafy'
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token

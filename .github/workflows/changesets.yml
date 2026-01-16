@@ -3,7 +3,7 @@ name: Create PR containing updated CHANGELOG.md and release packages to NPM once
 on:
   push:
     branches:
-      - main
+      - develop
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    if: github.repository == 'calcom/cal.com' # prevent this action from running on forks
+    if: github.repository == 'DavidKer1/apuntafy' # prevent this action from running on forks
     name: Release
     runs-on: ubuntu-latest
     steps:
