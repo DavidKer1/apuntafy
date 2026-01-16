@@ -82,7 +82,12 @@
     "changesets-add": "yarn changeset add",
     "changesets-version": "yarn changeset version",
     "changesets-release": "NODE_OPTIONS='--max_old_space_size=12288' turbo run build-npm --filter=@calcom/atoms && yarn changeset publish",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "flow:status": "./scripts/git-flow/status.sh",
+    "flow:feature": "./scripts/git-flow/new-feature.sh",
+    "flow:fix": "./scripts/git-flow/new-fix.sh",
+    "flow:sync": "./scripts/git-flow/sync-upstream.sh",
+    "flow:release": "./scripts/git-flow/release.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.10",
