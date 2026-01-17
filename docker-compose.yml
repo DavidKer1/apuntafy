@@ -1,6 +1,5 @@
 networks:
-  stack:
-    name: stack
+  coolify:
     external: true
 services:
   calcom:
@@ -14,14 +13,17 @@ services:
     expose:
       - "3000"
     env_file: .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     networks:
-      - stack
+      - coolify
   calcom-api:
     container_name: calcom-api
     build:
@@ -35,11 +37,12 @@ services:
     env_file: .env
     environment:
       - API_PORT=5555
+      - HOST=0.0.0.0
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5555/api/v2/health"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5555/api/v2/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
     networks:
-      - stack
+      - coolify
