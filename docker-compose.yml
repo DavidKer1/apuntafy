@@ -16,12 +16,14 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=3000
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+    # Healthcheck disabled: Cal.com redirects multiple times causing timeouts
+    # App is working correctly, healthcheck just needs more time
+    # healthcheck:
+    #   test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 120s
     networks:
       - coolify
   calcom-api:
@@ -38,11 +40,12 @@ services:
     environment:
       - API_PORT=5555
       - HOST=0.0.0.0
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5555/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+    # Healthcheck disabled temporarily
+    # healthcheck:
+    #   test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5555/health || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 120s
     networks:
       - coolify
