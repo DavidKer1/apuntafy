@@ -5,8 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    networks:
-      - stack
     ports:
       - 3000:3000
     expose:
@@ -25,8 +23,6 @@ services:
       context: .
       dockerfile: apps/api/v2/Dockerfile
     restart: always
-    networks:
-      - stack
     ports:
       - 5555:5555
     expose:
@@ -40,7 +36,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-networks:
-  stack:
-    driver: bridge
