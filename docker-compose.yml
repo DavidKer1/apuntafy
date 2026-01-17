@@ -9,7 +9,15 @@ services:
       - stack
     ports:
       - 3000:3000
+    expose:
+      - "3000"
     env_file: .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   calcom-api:
     container_name: calcom-api
@@ -21,9 +29,17 @@ services:
       - stack
     ports:
       - 5555:5555
+    expose:
+      - "5555"
     env_file: .env
     environment:
       - API_PORT=5555
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555/api/v2/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 networks:
   stack:
