@@ -1,3 +1,7 @@
+networks:
+  stack:
+    name: stack
+    external: true
 services:
   calcom:
     image: calcom.docker.scarf.sh/calcom/cal.com
@@ -16,7 +20,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
+    networks:
+      - stack
   calcom-api:
     container_name: calcom-api
     build:
@@ -36,3 +41,5 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - stack
