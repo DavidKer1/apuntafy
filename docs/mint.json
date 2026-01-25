@@ -24,7 +24,7 @@
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "https://go.cal.com/support"
+      "url": "https://go.apuntafy.com/support"
     }
   ],
   "topbarCtaButton": {
@@ -83,7 +83,9 @@
         {
           "group": "API Development",
           "icon": "brackets-curly",
-          "pages": ["developing/guides/api/how-to-setup-api-in-a-local-instance"]
+          "pages": [
+            "developing/guides/api/how-to-setup-api-in-a-local-instance"
+          ]
         },
         {
           "group": "App Store and Integration",
@@ -181,7 +183,9 @@
         {
           "group": "App Store and Integration",
           "icon": "grid",
-          "pages": ["/self-hosting/guides/appstore-and-integration/syncing-third-party-apps"]
+          "pages": [
+            "/self-hosting/guides/appstore-and-integration/syncing-third-party-apps"
+          ]
         },
         {
           "group": "White Labeling",
@@ -195,7 +199,9 @@
         {
           "group": "Sponsorship",
           "icon": "money-check-dollar",
-          "pages": ["/self-hosting/guides/sponsorship/can-calcom-sponsor-my-open-source-project"]
+          "pages": [
+            "/self-hosting/guides/sponsorship/can-calcom-sponsor-my-open-source-project"
+          ]
         },
         {
           "group": "Organizations",

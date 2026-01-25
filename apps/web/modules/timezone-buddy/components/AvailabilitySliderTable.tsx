@@ -1,14 +1,7 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
-import { getCoreRowModel, getFilteredRowModel, useReactTable } from "@tanstack/react-table";
-import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import dayjs from "@calcom/dayjs";
 import { DataTableProvider } from "@calcom/features/data-table/DataTableProvider";
-import { DataTable, DataTableToolbar } from "~/data-table/components";
 import { useDataTable } from "@calcom/features/data-table/hooks";
 import type { DateRange } from "@calcom/features/schedules/lib/date-ranges";
 import { APP_NAME, WEBAPP_URL } from "@calcom/lib/constants";
@@ -20,9 +13,17 @@ import type { UserProfile } from "@calcom/types/UserProfile";
 import { UserAvatar } from "@calcom/ui/components/avatar";
 import { Button } from "@calcom/ui/components/button";
 import { ButtonGroup } from "@calcom/ui/components/buttonGroup";
-
+import { keepPreviousData } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  getCoreRowModel,
+  getFilteredRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DataTable, DataTableToolbar } from "~/data-table/components";
 import { UpgradeTip } from "~/shell/UpgradeTip";
-
 import { createTimezoneBuddyStore, TBContext } from "../store";
 import { AvailabilityEditSheet } from "./AvailabilityEditSheet";
 import { CellHighlightContainer } from "./CellHighlightContainer";
@@ -58,12 +59,17 @@ function UpgradeTeamTip() {
             <Button color="primary" href={`${WEBAPP_URL}/settings/teams/new`}>
               {t("create_team")}
             </Button>
-            <Button color="minimal" href="https://go.cal.com/teams-video" target="_blank">
+            <Button
+              color="minimal"
+              href="https://go.apuntafy.com/teams-video"
+              target="_blank"
+            >
               {t("learn_more")}
             </Button>
           </ButtonGroup>
         </div>
-      }>
+      }
+    >
       <></>
     </UpgradeTip>
   );
@@ -86,19 +92,20 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
   const [selectedUser, setSelectedUser] = useState<SliderUser | null>(null);
   const { searchTerm } = useDataTable();
 
-  const { data, isPending, fetchNextPage, isFetching } = trpc.viewer.availability.listTeam.useInfiniteQuery(
-    {
-      limit: 10,
-      loggedInUsersTz: CURRENT_TIMEZONE,
-      startDate: browsingDate.startOf("day").toISOString(),
-      endDate: browsingDate.endOf("day").toISOString(),
-      searchString: searchTerm,
-    },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-      placeholderData: keepPreviousData,
-    }
-  );
+  const { data, isPending, fetchNextPage, isFetching } =
+    trpc.viewer.availability.listTeam.useInfiniteQuery(
+      {
+        limit: 10,
+        loggedInUsersTz: CURRENT_TIMEZONE,
+        startDate: browsingDate.startOf("day").toISOString(),
+        endDate: browsingDate.endOf("day").toISOString(),
+        searchString: searchTerm,
+      },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+        placeholderData: keepPreviousData,
+      }
+    );
 
   const memorisedColumns = useMemo(() => {
     const cols: ColumnDef<SliderUser>[] = [
@@ -110,7 +117,8 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
         header: "Member",
         size: 200,
         cell: ({ row }) => {
-          const { username, email, timeZone, name, avatarUrl, profile } = row.original;
+          const { username, email, timeZone, name, avatarUrl, profile } =
+            row.original;
           return (
             <div className="max-w-64 flex shrink-0 items-center gap-2 overflow-hidden">
               <UserAvatar
@@ -123,16 +131,25 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
                 }}
               />
               <div className="">
-                <div className="text-emphasis max-w-64 truncate text-sm font-medium" title={email}>
+                <div
+                  className="text-emphasis max-w-64 truncate text-sm font-medium"
+                  title={email}
+                >
                   {username || "No username"}
                 </div>
-                <div className="text-subtle text-xs leading-none">{timeZone}</div>
+                <div className="text-subtle text-xs leading-none">
+                  {timeZone}
+                </div>
               </div>
             </div>
           );
         },
         filterFn: (row, id, value) => {
-          return row.original.username?.toLowerCase().includes(value.toLowerCase()) || false;
+          return (
+            row.original.username
+              ?.toLowerCase()
+              .includes(value.toLowerCase()) || false
+          );
         },
       },
       {
@@ -156,7 +173,9 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
           return (
             <div className="flex flex-col text-center">
               <span className="text-default text-sm font-medium">{time}</span>
-              <span className="text-subtle text-xs leading-none">GMT {offsetFormatted}</span>
+              <span className="text-subtle text-xs leading-none">
+                GMT {offsetFormatted}
+              </span>
             </div>
           );
         },
@@ -176,7 +195,9 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
                   color="minimal"
                   variant="icon"
                   StartIcon="chevron-left"
-                  onClick={() => setBrowsingDate(browsingDate.subtract(1, "day"))}
+                  onClick={() =>
+                    setBrowsingDate(browsingDate.subtract(1, "day"))
+                  }
                 />
                 <Button
                   onClick={() => setBrowsingDate(browsingDate.add(1, "day"))}
@@ -201,7 +222,10 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
   }, [browsingDate]);
 
   //we must flatten the array of arrays from the useInfiniteQuery hook
-  const flatData = useMemo(() => data?.pages?.flatMap((page) => page.rows) ?? [], [data]) as SliderUser[];
+  const flatData = useMemo(
+    () => data?.pages?.flatMap((page) => page.rows) ?? [],
+    [data]
+  ) as SliderUser[];
   const totalRowCount = data?.pages?.[0]?.meta?.totalRowCount ?? 0;
   const totalFetched = flatData.length;
 
@@ -211,7 +235,11 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
       if (containerRefElement) {
         const { scrollHeight, scrollTop, clientHeight } = containerRefElement;
         //once the user has scrolled within 300px of the bottom of the table, fetch more data if there is any
-        if (scrollHeight - scrollTop - clientHeight < 300 && !isFetching && totalFetched < totalRowCount) {
+        if (
+          scrollHeight - scrollTop - clientHeight < 300 &&
+          !isFetching &&
+          totalFetched < totalRowCount
+        ) {
           fetchNextPage();
         }
       }
@@ -231,13 +259,15 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
   });
 
   // This means they are not apart of any teams so we show the upgrade tip
-  if (!flatData.length && !data?.pages?.[0]?.meta?.isApartOfAnyTeam) return <UpgradeTeamTip />;
+  if (!flatData.length && !data?.pages?.[0]?.meta?.isApartOfAnyTeam)
+    return <UpgradeTeamTip />;
 
   return (
     <TBContext.Provider
       value={createTimezoneBuddyStore({
         browsingDate: browsingDate.toDate(),
-      })}>
+      })}
+    >
       <>
         <CellHighlightContainer>
           <DataTable
@@ -250,7 +280,10 @@ function AvailabilitySliderTableContent(props: { isOrg: boolean }) {
               }
             }}
             isPending={isPending}
-            onScroll={(e) => fetchMoreOnBottomReached(e.target as HTMLDivElement)}>
+            onScroll={(e) =>
+              fetchMoreOnBottomReached(e.target as HTMLDivElement)
+            }
+          >
             <DataTableToolbar.Root>
               <DataTableToolbar.SearchBar />
             </DataTableToolbar.Root>

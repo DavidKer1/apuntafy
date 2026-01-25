@@ -1,52 +1,60 @@
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { ErrorCode } from "@calcom/lib/errorCodes";
+import { showToast } from "@calcom/ui/components/toast";
+import { platformPlans } from "@components/settings/platform/platformUtils";
+import { PlatformBillingCard } from "@components/settings/platform/pricing/billing-card";
+import { useSubscribeTeamToStripe } from "@lib/hooks/settings/platform/billing/useSubscribeTeamToStripe";
+import { useUpgradeTeamSubscriptionInStripe } from "@lib/hooks/settings/platform/billing/useUpgradeTeamSubscriptionInStripe";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { ErrorCode } from "@calcom/lib/errorCodes";
-import { showToast } from "@calcom/ui/components/toast";
+type PlatformPricingProps = {
+  teamId?: number | null;
+  teamPlan?: string;
+  heading?: ReactNode;
+};
 
-import { useSubscribeTeamToStripe } from "@lib/hooks/settings/platform/billing/useSubscribeTeamToStripe";
-import { useUpgradeTeamSubscriptionInStripe } from "@lib/hooks/settings/platform/billing/useUpgradeTeamSubscriptionInStripe";
-
-import { platformPlans } from "@components/settings/platform/platformUtils";
-import { PlatformBillingCard } from "@components/settings/platform/pricing/billing-card";
-
-type PlatformPricingProps = { teamId?: number | null; teamPlan?: string; heading?: ReactNode };
-
-export const PlatformPricing = ({ teamId, teamPlan, heading }: PlatformPricingProps) => {
+export const PlatformPricing = ({
+  teamId,
+  teamPlan,
+  heading,
+}: PlatformPricingProps) => {
   const pathname = usePathname();
   const currentPage = pathname?.split("/").pop();
   const router = useRouter();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const { mutateAsync: createTeamSubscription, isPending: isCreateTeamSubscriptionLoading } =
-    useSubscribeTeamToStripe({
-      onSuccess: (redirectUrl: string) => {
-        router.push(redirectUrl);
-      },
-      onError: () => {
-        showToast(ErrorCode.UnableToSubscribeToThePlatform, "error");
-        setLoadingPlan(null);
-      },
-      teamId,
-    });
+  const {
+    mutateAsync: createTeamSubscription,
+    isPending: isCreateTeamSubscriptionLoading,
+  } = useSubscribeTeamToStripe({
+    onSuccess: (redirectUrl: string) => {
+      router.push(redirectUrl);
+    },
+    onError: () => {
+      showToast(ErrorCode.UnableToSubscribeToThePlatform, "error");
+      setLoadingPlan(null);
+    },
+    teamId,
+  });
 
-  const { mutateAsync: upgradeTeamSubscription, isPending: isUpgradeTeamSubscriptionLoading } =
-    useUpgradeTeamSubscriptionInStripe({
-      onSuccess: (redirectUrl: string) => {
-        router.push(redirectUrl);
-      },
-      onError: () => {
-        showToast(ErrorCode.UnableToSubscribeToThePlatform, "error");
-        setLoadingPlan(null);
-      },
-      teamId,
-    });
+  const {
+    mutateAsync: upgradeTeamSubscription,
+    isPending: isUpgradeTeamSubscriptionLoading,
+  } = useUpgradeTeamSubscriptionInStripe({
+    onSuccess: (redirectUrl: string) => {
+      router.push(redirectUrl);
+    },
+    onError: () => {
+      showToast(ErrorCode.UnableToSubscribeToThePlatform, "error");
+      setLoadingPlan(null);
+    },
+    teamId,
+  });
 
   const handleStripeSubscription = async (plan: string) => {
     if (plan === "Enterprise") {
-      return router.push("https://go.cal.com/quote");
+      return router.push("https://go.apuntafy.com/quote");
     }
 
     setLoadingPlan(plan);
@@ -59,7 +67,11 @@ export const PlatformPricing = ({ teamId, teamPlan, heading }: PlatformPricingPr
   };
 
   if (!teamId) {
-    return <div className="m-5">Platform team not present, you need to create a team first.</div>;
+    return (
+      <div className="m-5">
+        Platform team not present, you need to create a team first.
+      </div>
+    );
   }
 
   return (
@@ -77,7 +89,8 @@ export const PlatformPricing = ({ teamId, teamPlan, heading }: PlatformPricingPr
                   includes={plan.includes}
                   isLoading={
                     loadingPlan === plan.plan &&
-                    (isCreateTeamSubscriptionLoading || isUpgradeTeamSubscriptionLoading)
+                    (isCreateTeamSubscriptionLoading ||
+                      isUpgradeTeamSubscriptionLoading)
                   }
                   currentPlan={plan.plan.toLocaleLowerCase() === teamPlan}
                   handleSubscribe={() => handleStripeSubscription(plan.plan)}

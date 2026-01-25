@@ -1,10 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-// eslint-disable-next-line no-restricted-imports
-import { noop } from "lodash";
-import { useCallback, useState } from "react";
-import { Controller, FormProvider, useForm, useFormState } from "react-hook-form";
-import { z } from "zod";
-
 import { CONSOLE_URL } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import type { RouterInputs, RouterOutputs } from "@calcom/trpc/react";
@@ -13,12 +6,26 @@ import classNames from "@calcom/ui/classNames";
 import { Button } from "@calcom/ui/components/button";
 import { TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
+import { zodResolver } from "@hookform/resolvers/zod";
+// eslint-disable-next-line no-restricted-imports
+import { noop } from "lodash";
+import { useCallback, useState } from "react";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormState,
+} from "react-hook-form";
+import { z } from "zod";
 
 type EnterpriseLicenseFormValues = {
   licenseKey: string;
 };
 
-const makeSchemaLicenseKey = (args: { callback: (valid: boolean) => void; onSuccessValidate: () => void }) =>
+const makeSchemaLicenseKey = (args: {
+  callback: (valid: boolean) => void;
+  onSuccessValidate: () => void;
+}) =>
   z.object({
     licenseKey: z
       .string()
@@ -29,7 +36,9 @@ const makeSchemaLicenseKey = (args: { callback: (valid: boolean) => void; onSucc
         const parse = z.string().uuid().safeParse(data);
         if (parse.success) {
           args.callback(true);
-          const response = await fetch(`${CONSOLE_URL}/api/license?key=${data}`);
+          const response = await fetch(
+            `${CONSOLE_URL}/api/license?key=${data}`
+          );
           args.callback(false);
           const json = await response.json();
           if (!json.valid) {
@@ -56,7 +65,12 @@ const EnterpriseLicense = (
     ) => void;
   } & Omit<JSX.IntrinsicElements["form"], "onSubmit">
 ) => {
-  const { onSubmit, onSuccess = noop, onSuccessValidate = noop, ...rest } = props;
+  const {
+    onSubmit,
+    onSuccess = noop,
+    onSuccessValidate = noop,
+    ...rest
+  } = props;
   const { t } = useLocale();
   const [checkLicenseLoading, setCheckLicenseLoading] = useState(false);
   const mutation = trpc.viewer.deploymentSetup.update.useMutation({
@@ -89,18 +103,25 @@ const EnterpriseLicense = (
 
   return (
     <FormProvider {...formMethods}>
-      <form {...rest} className="bg-default stack-y-4 rounded-md px-8 py-10" onSubmit={handleSubmit}>
+      <form
+        {...rest}
+        className="bg-default stack-y-4 rounded-md px-8 py-10"
+        onSubmit={handleSubmit}
+      >
         <div>
           <Button
             className="w-full justify-center text-lg"
             EndIcon="external-link"
-            href="https://go.cal.com/get-license"
-            target="_blank">
+            href="https://go.apuntafy.com/get-license"
+            target="_blank"
+          >
             {t("purchase_license")}
           </Button>
           <div className="relative flex justify-center">
             <hr className="border-subtle my-8 w-full border-[1.5px]" />
-            <span className="bg-default absolute mt-[22px] px-3.5 text-sm">OR</span>
+            <span className="bg-default absolute mt-[22px] px-3.5 text-sm">
+              OR
+            </span>
           </div>
           {t("already_have_key")}
           <Controller
@@ -111,14 +132,18 @@ const EnterpriseLicense = (
                 {...formMethods.register("licenseKey")}
                 className={classNames(
                   "group-hover:border-emphasis mb-0",
-                  (checkLicenseLoading || (errors.licenseKey === undefined && isDirty)) && "border-r-0"
+                  (checkLicenseLoading ||
+                    (errors.licenseKey === undefined && isDirty)) &&
+                    "border-r-0"
                 )}
                 placeholder="xxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxxx"
                 labelSrOnly={true}
                 value={value}
                 addOnClassname={classNames(
                   "hover:border-default",
-                  errors.licenseKey === undefined && isDirty && "group-hover:border-emphasis"
+                  errors.licenseKey === undefined &&
+                    isDirty &&
+                    "group-hover:border-emphasis"
                 )}
                 addOnSuffix={
                   checkLicenseLoading ? (

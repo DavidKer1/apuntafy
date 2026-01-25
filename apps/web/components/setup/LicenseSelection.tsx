@@ -1,19 +1,23 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as RadioGroup from "@radix-ui/react-radio-group";
-import classNames from "classnames";
-import Link from "next/link";
-import { useCallback, useState } from "react";
-import { Controller, FormProvider, useForm, useFormState } from "react-hook-form";
-import { z } from "zod";
-
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import type { RouterInputs, RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
 import { Button } from "@calcom/ui/components/button";
 import { TextField } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as RadioGroup from "@radix-ui/react-radio-group";
+import classNames from "classnames";
+import Link from "next/link";
+import { useCallback, useState } from "react";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  useFormState,
+} from "react-hook-form";
+import { z } from "zod";
 
 type LicenseSelectionFormValues = {
   licenseKey: string;
@@ -68,9 +72,14 @@ const LicenseSelection = (
         licenseKey: z
           .string()
           .min(1, t("license_key_required"))
-          .refine(() => !licenseTouched || (licenseValidation ? licenseValidation.valid : true), {
-            message: licenseValidation?.message || t("invalid_license_key"),
-          }),
+          .refine(
+            () =>
+              !licenseTouched ||
+              (licenseValidation ? licenseValidation.valid : true),
+            {
+              message: licenseValidation?.message || t("invalid_license_key"),
+            }
+          ),
         signatureToken: z.string().optional(),
       }),
     [licenseValidation, licenseTouched, t]
@@ -109,21 +118,28 @@ const LicenseSelection = (
         } else {
           handleSubmit();
         }
-      }}>
+      }}
+    >
       <RadioGroup.Root
         defaultValue={initialValue}
         value={value}
         aria-label={t("choose_a_license")}
         className="grid grid-rows-2 gap-4 md:grid-cols-2 md:grid-rows-1"
-        onValueChange={(value) => handleRadioChange(value as LicenseOption)}>
+        onValueChange={(value) => handleRadioChange(value as LicenseOption)}
+      >
         <RadioGroup.Item value="FREE" className="h-full">
           <div
             className={classNames(
               "bg-default h-full cursor-pointer stack-y-2 rounded-md border p-4 hover:border-black",
               value === "FREE" && "ring-2 ring-black"
-            )}>
-            <h2 className="font-cal text-emphasis text-xl">{t("agplv3_license")}</h2>
-            <p className="font-medium text-green-800">{t("free_license_fee")}</p>
+            )}
+          >
+            <h2 className="font-cal text-emphasis text-xl">
+              {t("agplv3_license")}
+            </h2>
+            <p className="font-medium text-green-800">
+              {t("free_license_fee")}
+            </p>
             <p className="text-subtle">{t("forever_open_and_free")}</p>
             <ul className="text-subtle ml-4 list-disc text-left text-xs">
               <li>{t("required_to_keep_your_code_open_source")}</li>
@@ -138,17 +154,23 @@ const LicenseSelection = (
             className={classNames(
               "bg-default h-full cursor-pointer stack-y-2 rounded-md border p-4 hover:border-black",
               value === "EXISTING" && "ring-2 ring-black"
-            )}>
-            <h2 className="font-cal text-emphasis text-xl">{t("enter_license_key")}</h2>
-            <p className="font-medium text-green-800">{t("enter_existing_license")}</p>
+            )}
+          >
+            <h2 className="font-cal text-emphasis text-xl">
+              {t("enter_license_key")}
+            </h2>
+            <p className="font-medium text-green-800">
+              {t("enter_existing_license")}
+            </p>
             <p className="text-subtle">{t("enter_your_license_key")}</p>
             <p className="text-subtle text-xs">
               {t("need_a_license")}{" "}
               <Link
-                href="https://go.cal.com/self-hosted"
+                href="https://go.apuntafy.com/self-hosted"
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-blue-600 hover:underline">
+                className="text-blue-600 hover:underline"
+              >
                 {t("purchase_license")}
               </Link>
             </p>
@@ -170,19 +192,29 @@ const LicenseSelection = (
                       label={t("license_key")}
                       className={classNames(
                         "group-hover:border-emphasis mb-0",
-                        (checkLicenseLoading || (errors.licenseKey === undefined && isDirty)) && "border-r-0"
+                        (checkLicenseLoading ||
+                          (errors.licenseKey === undefined && isDirty)) &&
+                          "border-r-0"
                       )}
                       placeholder="cal_live_XXXXXXXXXXX"
                       value={licenseKeyInput}
                       addOnClassname={classNames(
                         "hover:border-default",
-                        errors.licenseKey === undefined && isDirty && "group-hover:border-emphasis"
+                        errors.licenseKey === undefined &&
+                          isDirty &&
+                          "group-hover:border-emphasis"
                       )}
                       addOnSuffix={
                         checkLicenseLoading ? (
-                          <Icon name="loader" className="h-5 w-5 animate-spin" />
+                          <Icon
+                            name="loader"
+                            className="h-5 w-5 animate-spin"
+                          />
                         ) : licenseValidation?.valid && licenseTouched ? (
-                          <Icon name="check" className="h-5 w-5 text-green-700" />
+                          <Icon
+                            name="check"
+                            className="h-5 w-5 text-green-700"
+                          />
                         ) : undefined
                       }
                       color={errors.licenseKey ? "warn" : ""}
@@ -198,7 +230,9 @@ const LicenseSelection = (
                   )}
                 />
                 {errors.licenseKey && (
-                  <p className="mt-1 text-sm text-red-600">{errors.licenseKey.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.licenseKey.message}
+                  </p>
                 )}
               </div>
 
@@ -220,7 +254,9 @@ const LicenseSelection = (
                     />
                   )}
                 />
-                <p className="text-subtle mt-1 text-sm">{t("signature_token_description")}</p>
+                <p className="text-subtle mt-1 text-sm">
+                  {t("signature_token_description")}
+                </p>
               </div>
             </div>
           </div>
@@ -238,8 +274,11 @@ const LicenseSelection = (
             loading={checkLicenseLoading || mutation.isPending}
             disabled={
               value === "EXISTING" &&
-              (!formMethods.formState.isValid || checkLicenseLoading || mutation.isPending)
-            }>
+              (!formMethods.formState.isValid ||
+                checkLicenseLoading ||
+                mutation.isPending)
+            }
+          >
             {t("save_license_key")}
           </Button>
         ) : (

@@ -83,7 +83,7 @@ export default function More() {
       name: "Support",
       icon: "help-circle-outline",
       isExternal: true,
-      onPress: () => openInAppBrowser("https://go.cal.com/support", "Support"),
+      onPress: () => openInAppBrowser("https://go.apuntafy.com/support", "Support"),
     },
   ];
 
