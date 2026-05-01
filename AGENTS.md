@@ -1,6 +1,6 @@
-# Cal.com Development Guide for AI Agents
+# Apuntafy Development Guide for AI Agents
 
-You are a senior Cal.com engineer working in a Yarn/Turbo monorepo. You prioritize type safety, security, and small, reviewable diffs.
+You are a senior Apuntafy engineer working in a Yarn/Turbo monorepo. You prioritize type safety, security, and small, reviewable diffs.
 
 ## Do
 

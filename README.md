@@ -1,28 +1,29 @@
 <!-- PROJECT LOGO -->
 <p align="center">
+  <!-- TODO: Actualizar con logo de Apuntafy cuando se tenga URL estable -->
   <a href="https://github.com/calcom/cal.com">
    <img src="https://user-images.githubusercontent.com/8019099/210054112-5955e812-a76e-4160-9ddd-58f2c72f1cce.png" alt="Logo">
   </a>
 
-  <h3 align="center">Cal.com</h3>
+  <h3 align="center">Apuntafy</h3>
 
   <p align="center">
-    The open-source Calendly successor.
+    Simplifica el agendamiento de citas para tu negocio.
     <br />
-    <a href="https://cal.com"><strong>Learn more »</strong></a>
+    <a href="https://app.apuntafy.com"><strong>Más información »</strong></a>
     <br />
     <br />
+    <!-- TODO: Actualizar enlaces cuando se migre el repositorio -->
     <a href="https://github.com/calcom/cal.com/discussions">Discussions</a>
     ·
-    <a href="https://cal.com">Website</a>
+    <a href="https://app.apuntafy.com">Website</a>
     ·
     <a href="https://github.com/calcom/cal.com/issues">Issues</a>
-    ·
-    <a href="https://cal.com/roadmap">Roadmap</a>
   </p>
 </p>
 
 <p align="center">
+   <!-- TODO: Actualizar badges cuando Apuntafy tenga sus propias cuentas -->
    <a href="https://www.producthunt.com/products/cal-com"><img src="https://img.shields.io/badge/Product%20Hunt-%231%20Product%20of%20the%20Month-%23DA552E" alt="Product Hunt"></a>
    <img src="https://api.checklyhq.com/v1/badges/groups/1120718?style=flat&theme=default" alt="Checkly QA">
    <a href="https://status.cal.com"><img height="20px" src="https://betteruptime.com/status-badges/v1/monitor/a9kf.svg" alt="Uptime"></a>
@@ -48,16 +49,17 @@
 
 <img width="100%" alt="booking-screen" src="https://github.com/calcom/cal.com/assets/8019099/407e727e-ff19-4ca4-bcae-049dca05cf02">
 
-# Scheduling infrastructure for absolutely everyone
+# Simplifica el agendamiento de citas para tu negocio
 
-The open source Calendly successor. You are in charge
-of your own data, workflow, and appearance.
+Apuntafy es la solución profesional para gestionar las reservas y citas de tu empresa. Ahorra tiempo, reduce ausencias y mejora la experiencia de tus clientes con un sistema de agendamiento inteligente.
 
-Calendly and other scheduling tools are awesome. It made our lives massively easier. We're using it for business meetings, seminars, yoga classes, and even calls with our families. However, most tools are very limited in terms of control and customization.
+Automatiza tus citas, sincroniza calendarios y personaliza tu marca. Perfecto para consultorías, clínicas, salones de belleza, centros deportivos y cualquier negocio que requiera gestión de citas.
 
-That's where Cal.com comes in. Self-hosted or hosted by us. White-label by design. API-driven and ready to be deployed on your own domain. Full control of your events and data.
+Apuntafy ofrece control total sobre tu agenda. Auto-hospedado u hospedado por nosotros. Marca blanca por diseño. Impulsado por API y listo para ser desplegado en tu propio dominio. Control completo de tus citas y datos de clientes.
 
 ## Recognition
+
+<!-- TODO: Actualizar con reconocimientos de Apuntafy cuando estén disponibles -->
 
 #### [Hacker News](https://news.ycombinator.com/from?site=cal.com)
 
@@ -94,13 +96,12 @@ This project is tested with browserstack
 
 ## Contact us
 
-Meet our sales team for any commercial inquiries.
-
-<a href="https://cal.com/sales"><img src="https://cal.com/book-with-cal-dark.svg" alt="Book us with Cal.com"></a>
+<!-- TODO: Actualizar con información de contacto de Apuntafy -->
+Para consultas comerciales, contáctanos en soporte@apuntafy.com
 
 ## Stay Up-to-Date
 
-Cal.com officially launched as v.1.0 on the 15th of September 2021 and we've come a long way so far. Watch **releases** of this repository to be notified of future updates:
+Apuntafy se lanzó oficialmente en 2026. Sigue las **releases** de este repositorio para ser notificado de futuras actualizaciones:
 
 ![cal-star-github](https://user-images.githubusercontent.com/8019099/154853944-a9e3c999-3da3-4048-b149-b4f73893c6fb.gif)
 
@@ -108,11 +109,11 @@ Cal.com officially launched as v.1.0 on the 15th of September 2021 and we've com
 
 ## Getting Started
 
-To get a local copy up and running, please follow these simple steps.
+Para obtener una copia local funcionando, sigue estos sencillos pasos.
 
 ### Prerequisites
 
-Here is what you need to be able to run Cal.com.
+Esto es lo que necesitas para poder ejecutar Apuntafy.
 
 - Node.js (Version: >=18.x)
 - PostgreSQL (Version: >=13.x)

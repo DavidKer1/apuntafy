@@ -18383,6 +18383,44 @@ __metadata:
   languageName: node
   linkType: hard
 
+"apuntafy-monorepo@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "apuntafy-monorepo@workspace:."
+  dependencies:
+    "@biomejs/biome": "npm:2.3.10"
+    "@changesets/changelog-github": "npm:0.5.1"
+    "@changesets/cli": "npm:2.29.4"
+    "@faker-js/faker": "npm:9.2.0"
+    "@jetstreamapp/soql-parser-js": "npm:6.1.0"
+    "@playwright/test": "npm:1.57.0"
+    "@prisma/internals": "npm:6.16.2"
+    "@snaplet/copycat": "npm:4.1.0"
+    "@testing-library/jest-dom": "npm:5.17.0"
+    "@testing-library/react": "npm:16.0.1"
+    "@vitest/ui": "npm:4.0.16"
+    c8: "npm:7.13.0"
+    checkly: "npm:latest"
+    dotenv-checker: "npm:1.1.5"
+    husky: "npm:9.1.7"
+    i18n-unused: "npm:0.13.0"
+    jest-diff: "npm:29.7.0"
+    jest-summarizing-reporter: "npm:1.1.4"
+    lint-staged: "npm:12.5.0"
+    mailhog: "npm:4.16.0"
+    next-router-mock: "npm:0.9.12"
+    node-gyp: "npm:10.2.0"
+    node-ical: "npm:0.16.1"
+    prismock: "npm:1.35.3"
+    resize-observer-polyfill: "npm:1.5.1"
+    tsc-absolute: "npm:1.0.0"
+    turbo: "npm:2.7.1"
+    typescript: "npm:5.9.3"
+    vitest: "npm:4.0.16"
+    vitest-fetch-mock: "npm:0.4.5"
+    vitest-mock-extended: "npm:3.1.0"
+  languageName: unknown
+  linkType: soft
+
 "are-we-there-yet@npm:^3.0.0":
   version: 3.0.1
   resolution: "are-we-there-yet@npm:3.0.1"
@@ -19438,44 +19476,6 @@ __metadata:
   checksum: 10/ca2f7b2d3003f84d362da9580b5561058ccaecd46cba661cbcff0375c90734b610520d46b472a339fd032d91597ad6ed12dde8af81571197f3c9772b5d35b104
   languageName: node
   linkType: hard
-
-"calcom-monorepo@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "calcom-monorepo@workspace:."
-  dependencies:
-    "@biomejs/biome": "npm:2.3.10"
-    "@changesets/changelog-github": "npm:0.5.1"
-    "@changesets/cli": "npm:2.29.4"
-    "@faker-js/faker": "npm:9.2.0"
-    "@jetstreamapp/soql-parser-js": "npm:6.1.0"
-    "@playwright/test": "npm:1.57.0"
-    "@prisma/internals": "npm:6.16.2"
-    "@snaplet/copycat": "npm:4.1.0"
-    "@testing-library/jest-dom": "npm:5.17.0"
-    "@testing-library/react": "npm:16.0.1"
-    "@vitest/ui": "npm:4.0.16"
-    c8: "npm:7.13.0"
-    checkly: "npm:latest"
-    dotenv-checker: "npm:1.1.5"
-    husky: "npm:9.1.7"
-    i18n-unused: "npm:0.13.0"
-    jest-diff: "npm:29.7.0"
-    jest-summarizing-reporter: "npm:1.1.4"
-    lint-staged: "npm:12.5.0"
-    mailhog: "npm:4.16.0"
-    next-router-mock: "npm:0.9.12"
-    node-gyp: "npm:10.2.0"
-    node-ical: "npm:0.16.1"
-    prismock: "npm:1.35.3"
-    resize-observer-polyfill: "npm:1.5.1"
-    tsc-absolute: "npm:1.0.0"
-    turbo: "npm:2.7.1"
-    typescript: "npm:5.9.3"
-    vitest: "npm:4.0.16"
-    vitest-fetch-mock: "npm:0.4.5"
-    vitest-mock-extended: "npm:3.1.0"
-  languageName: unknown
-  linkType: soft
 
 "call-bind-apply-helpers@npm:^1.0.0, call-bind-apply-helpers@npm:^1.0.1, call-bind-apply-helpers@npm:^1.0.2":
   version: 1.0.2
@@ -21865,9 +21865,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dayjs@patch:dayjs@npm%3A1.11.4#./.yarn/patches/dayjs-npm-1.11.4-97921cd375.patch::locator=calcom-monorepo%40workspace%3A.":
+"dayjs@patch:dayjs@npm%3A1.11.4#./.yarn/patches/dayjs-npm-1.11.4-97921cd375.patch::locator=apuntafy-monorepo%40workspace%3A.":
   version: 1.11.4
-  resolution: "dayjs@patch:dayjs@npm%3A1.11.4#./.yarn/patches/dayjs-npm-1.11.4-97921cd375.patch::version=1.11.4&hash=24cc20&locator=calcom-monorepo%40workspace%3A."
+  resolution: "dayjs@patch:dayjs@npm%3A1.11.4#./.yarn/patches/dayjs-npm-1.11.4-97921cd375.patch::version=1.11.4&hash=24cc20&locator=apuntafy-monorepo%40workspace%3A."
   checksum: 10/7771e8ad12998e840dbe06455d1a0ae4183f98467b6c3160cf674cd721525abc5424013e68b244c174485f4e8452a3bef3c78ce82d92a5cb00bc62a23c951f60
   languageName: node
   linkType: hard
@@ -28731,9 +28731,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libphonenumber-js@patch:libphonenumber-js@1.12.38#./.yarn/patches/libphonenumber-js+1.12.38.patch::locator=calcom-monorepo%40workspace%3A.":
+"libphonenumber-js@patch:libphonenumber-js@1.12.38#./.yarn/patches/libphonenumber-js+1.12.38.patch::locator=apuntafy-monorepo%40workspace%3A.":
   version: 1.12.38
-  resolution: "libphonenumber-js@patch:libphonenumber-js@npm%3A1.12.38#./.yarn/patches/libphonenumber-js+1.12.38.patch::version=1.12.38&hash=18a67d&locator=calcom-monorepo%40workspace%3A."
+  resolution: "libphonenumber-js@patch:libphonenumber-js@npm%3A1.12.38#./.yarn/patches/libphonenumber-js+1.12.38.patch::version=1.12.38&hash=18a67d&locator=apuntafy-monorepo%40workspace%3A."
   checksum: 10/707404eda471b34d6441b5f9f3a75fdf5da8b8329900c17790ea91cc7db6f90db62dbb5ad561e2d9d0df942dea633f91eca4d6382f1833cbbf1f354be9437ff5
   languageName: node
   linkType: hard

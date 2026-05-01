@@ -1,9 +1,18 @@
 {
-  "name": "Cal.com",
-  "description": "Open Source Scheduling",
+  "name": "Apuntafy",
+  "description": "Simplifica el agendamiento de citas para tu negocio",
   "repository": "https://github.com/calcom/cal.com",
-  "logo": "https://cal.com/android-chrome-512x512.png",
-  "keywords": ["react", "typescript", "node", "nextjs", "prisma", "postgres", "trpc"],
+  "_comment": "TODO: Actualizar repository URL cuando se migre a repositorio propio de Apuntafy",
+  "logo": "https://app.apuntafy.com/android-chrome-512x512.png",
+  "keywords": [
+    "react",
+    "typescript",
+    "node",
+    "nextjs",
+    "prisma",
+    "postgres",
+    "trpc"
+  ],
   "addons": [
     {
       "plan": "heroku-postgresql:mini"

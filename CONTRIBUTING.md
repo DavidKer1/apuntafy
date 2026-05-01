@@ -1,4 +1,4 @@
-# Contributing to Cal.com
+# Contributing to Apuntafy
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
@@ -6,6 +6,7 @@ Contributions are what make the open source community such an amazing place to l
 
 ### 👥 Prevent Work Duplication
 
+<!-- TODO: Actualizar URLs cuando se migre el repositorio -->
 Before submitting a new issue or PR, check if it already exists in the [Issues](https://github.com/calcom/cal.com/issues) or [Pull Requests](https://github.com/calcom/cal.com/pulls).
 
 ### ✅ Work Only on Approved Issues
