@@ -7,7 +7,10 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
 import { useIsPlatform } from "@calcom/atoms/hooks/useIsPlatform";
-import { type CountryCode, useBookerStore } from "@calcom/features/bookings/Booker/store";
+import {
+  type CountryCode,
+  useBookerStore,
+} from "@calcom/features/bookings/Booker/store";
 import { trpc } from "@calcom/trpc/react";
 import classNames from "@calcom/ui/classNames";
 import { CUSTOM_PHONE_MASKS } from "./phone-masks";
@@ -31,12 +34,15 @@ function BasePhoneInput({
   className = "",
   onChange,
   value,
-  defaultCountry = "us",
+  defaultCountry = "mx",
   ...rest
 }: PhoneInputProps) {
   const isPlatform = useIsPlatform();
-  const defaultPhoneCountryFromStore = useBookerStore((state) => state.defaultPhoneCountry);
-  const effectiveDefaultCountry = defaultPhoneCountryFromStore || defaultCountry;
+  const defaultPhoneCountryFromStore = useBookerStore(
+    (state) => state.defaultPhoneCountry
+  );
+  const effectiveDefaultCountry =
+    defaultPhoneCountryFromStore || defaultCountry;
 
   // This is to trigger validation on prefill value changes
   useEffect(() => {
@@ -57,7 +63,13 @@ function BasePhoneInput({
 
   if (!isPlatform) {
     return (
-      <BasePhoneInputWeb name={name} className={className} onChange={onChange} value={value} {...rest} />
+      <BasePhoneInputWeb
+        name={name}
+        className={className}
+        onChange={onChange}
+        value={value}
+        {...rest}
+      />
     );
   }
 
@@ -156,8 +168,12 @@ function BasePhoneInputWeb({
 }
 
 const useDefaultCountry = () => {
-  const defaultPhoneCountryFromStore = useBookerStore((state) => state.defaultPhoneCountry);
-  const [defaultCountry, setDefaultCountry] = useState<CountryCode>(defaultPhoneCountryFromStore || "us");
+  const defaultPhoneCountryFromStore = useBookerStore(
+    (state) => state.defaultPhoneCountry
+  );
+  const [defaultCountry, setDefaultCountry] = useState<CountryCode>(
+    defaultPhoneCountryFromStore || "mx"
+  );
   const query = trpc.viewer.public.countryCode.useQuery(undefined, {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -183,7 +199,7 @@ const useDefaultCountry = () => {
         if (navCountry && isSupportedCountry(navCountry)) {
           setDefaultCountry(navCountry.toLowerCase() as CountryCode);
         } else {
-          setDefaultCountry("us");
+          setDefaultCountry("mx");
         }
       }
     },
