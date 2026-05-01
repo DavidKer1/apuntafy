@@ -2,29 +2,31 @@ import {
   createBookingScenario,
   getDate,
   getGoogleCalendarCredential,
-  TestData,
   getOrganizer,
   getScenarioData,
+  TestData,
 } from "@calcom/testing/lib/bookingScenario/bookingScenario";
-import { expectWebhookToHaveBeenCalledWith } from "@calcom/testing/lib/bookingScenario/expects";
-import { setupAndTeardown } from "@calcom/testing/lib/bookingScenario/setupAndTeardown";
-
-import { describe, vi, test, expect } from "vitest";
-
+import process from "node:process";
 import { appStoreMetadata } from "@calcom/app-store/apps.metadata.generated";
 import dayjs from "@calcom/dayjs";
-import { TimeUnit } from "@calcom/prisma/enums";
-import { WebhookTriggerEvents } from "@calcom/prisma/enums";
-import { BookingStatus } from "@calcom/prisma/enums";
-
+import { BookingStatus, TimeUnit, WebhookTriggerEvents } from "@calcom/prisma/enums";
+import { expectWebhookToHaveBeenCalledWith } from "@calcom/testing/lib/bookingScenario/expects";
+import { setupAndTeardown } from "@calcom/testing/lib/bookingScenario/setupAndTeardown";
+import { describe, expect, test, vi } from "vitest";
+import { WebhookVersion } from "../../../webhooks/lib/interface/IWebhookRepository";
 import { calculateMaxStartTime } from "./common";
 import { getMeetingSessionsFromRoomName } from "./getMeetingSessionsFromRoomName";
 import type { TSendNoShowWebhookPayloadSchema } from "./schema";
 import { triggerGuestNoShow } from "./triggerGuestNoShow";
-import { WebhookVersion } from "../../../webhooks/lib/interface/IWebhookRepository";
 
 vi.mock("@calcom/features/tasker/tasks/triggerNoShow/getMeetingSessionsFromRoomName", () => ({
   getMeetingSessionsFromRoomName: vi.fn(),
+}));
+
+vi.mock("@calcom/features/di/containers/FeaturesRepository", () => ({
+  getFeaturesRepository: vi.fn().mockReturnValue({
+    checkIfTeamHasFeature: vi.fn().mockResolvedValue(false),
+  }),
 }));
 
 const timeout = process.env.CI ? 5000 : 20000;
@@ -51,10 +53,11 @@ describe("Trigger Guest No Show:", () => {
       const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
 
       const uidOfBooking = "n5Wv3eHgconAED2j4gcVhP";
-      const iCalUID = `${uidOfBooking}@Cal.com`;
+      const iCalUID = `${uidOfBooking}@Cal.diy`;
       const subscriberUrl = "http://my-webhook.example.com";
       const bookingStartTime = `${plus1DateString}T05:00:00.000Z`;
 
+      const GUEST_ATTENDEE_ID = 101;
       await createBookingScenario(
         getScenarioData({
           webhooks: [
@@ -93,6 +96,7 @@ describe("Trigger Guest No Show:", () => {
               user: { id: organizer.id },
               attendees: [
                 {
+                  id: GUEST_ATTENDEE_ID,
                   email: "guest@example.com",
                   name: "Guest User",
                   timeZone: "UTC",
@@ -193,6 +197,7 @@ describe("Trigger Guest No Show:", () => {
           message: `Guest didn't join the call or didn't join before ${maxStartTimeHumanReadable}`,
         },
       });
+
     },
     timeout
   );
@@ -211,10 +216,11 @@ describe("Trigger Guest No Show:", () => {
       const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
 
       const uidOfBooking = "n5Wv3eHgconAED2j4gcVhP";
-      const iCalUID = `${uidOfBooking}@Cal.com`;
+      const iCalUID = `${uidOfBooking}@Cal.diy`;
       const subscriberUrl = "http://my-webhook.example.com";
       const bookingStartTime = `${plus1DateString}T05:00:00.000Z`;
 
+      const GUEST_ATTENDEE_ID = 102;
       await createBookingScenario(
         getScenarioData({
           webhooks: [
@@ -253,6 +259,7 @@ describe("Trigger Guest No Show:", () => {
               user: { id: organizer.id },
               attendees: [
                 {
+                  id: GUEST_ATTENDEE_ID,
                   email: "guest@example.com",
                   name: "Guest User",
                   timeZone: "UTC",
@@ -381,6 +388,7 @@ describe("Trigger Guest No Show:", () => {
           message: `Guest didn't join the call or didn't join before ${maxStartTimeHumanReadable}`,
         },
       });
+
     },
     timeout
   );
@@ -399,14 +407,15 @@ describe("Trigger Guest No Show:", () => {
       const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
 
       const uidOfBooking = "j5Wv3eHgconAED2j4gcVhP";
-      const iCalUID = `${uidOfBooking}@Cal.com`;
+      const iCalUID = `${uidOfBooking}@Cal.diy`;
       const subscriberUrl = "http://my-webhook.example.com";
       const bookingStartTime = `${plus1DateString}T05:00:00.000Z`;
 
       const newUidOfBooking = "k5Wv3eHgconAED2j4gcVhP";
-      const newiCalUID = `${newUidOfBooking}@Cal.com`;
+      const newiCalUID = `${newUidOfBooking}@Cal.diy`;
       const newBookingStartTime = `${plus1DateString}T05:15:00.000Z`;
 
+      const GUEST_ATTENDEE_ID = 103;
       await createBookingScenario(
         getScenarioData({
           webhooks: [
@@ -480,6 +489,7 @@ describe("Trigger Guest No Show:", () => {
               fromReschedule: uidOfBooking,
               attendees: [
                 {
+                  id: GUEST_ATTENDEE_ID,
                   email: "guest@example.com",
                   name: "Guest User",
                   timeZone: "UTC",
@@ -608,6 +618,7 @@ describe("Trigger Guest No Show:", () => {
           message: `Guest didn't join the call or didn't join before ${maxStartTimeHumanReadable}`,
         },
       });
+
     },
     timeout
   );
@@ -626,7 +637,7 @@ describe("Trigger Guest No Show:", () => {
       const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
 
       const uidOfBooking = "n5Wv3eHgconAED2j4gcVhP";
-      const iCalUID = `${uidOfBooking}@Cal.com`;
+      const iCalUID = `${uidOfBooking}@Cal.diy`;
       const subscriberUrl = "http://my-webhook.example.com";
       const bookingStartTime = `${plus1DateString}T05:00:00.000Z`;
 
@@ -759,6 +770,7 @@ describe("Trigger Guest No Show:", () => {
           payload: expect.any(Object),
         })
       ).toThrow();
+
     },
     timeout
   );
@@ -777,10 +789,11 @@ describe("Trigger Guest No Show:", () => {
       const { dateString: plus1DateString } = getDate({ dateIncrement: 1 });
 
       const uidOfBooking = "n5Wv3eHgconAED2j4gcVhP";
-      const iCalUID = `${uidOfBooking}@Cal.com`;
+      const iCalUID = `${uidOfBooking}@Cal.diy`;
       const subscriberUrl = "http://my-webhook.example.com";
       const bookingStartTime = `${plus1DateString}T05:00:00.000Z`;
 
+      const GUEST_ATTENDEE_ID = 104;
       await createBookingScenario(
         getScenarioData({
           webhooks: [
@@ -819,6 +832,7 @@ describe("Trigger Guest No Show:", () => {
               user: { id: organizer.id },
               attendees: [
                 {
+                  id: GUEST_ATTENDEE_ID,
                   email: "guest@example.com",
                   name: "Guest User",
                   timeZone: "UTC",

@@ -3,7 +3,6 @@ import type { IAttendeeRepository } from "@calcom/features/bookings/repositories
 import { CredentialRepository } from "@calcom/features/credentials/repositories/CredentialRepository";
 import type { ISimpleLogger } from "@calcom/features/di/shared/services/logger.service";
 import { MembershipRepository } from "@calcom/features/membership/repositories/MembershipRepository";
-import { PermissionCheckService } from "@calcom/features/pbac/services/permission-check.service";
 import { UserRepository } from "@calcom/features/users/repositories/UserRepository";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import type { BookingAuditContext } from "../../dto/types";
@@ -17,11 +16,15 @@ import type {
 import { BookingAuditErrorCode, BookingAuditPermissionError } from "../BookingAuditAccessService";
 import { BookingAuditViewerService } from "../BookingAuditViewerService";
 
-vi.mock("@calcom/features/pbac/services/permission-check.service");
 vi.mock("@calcom/features/users/repositories/UserRepository");
 vi.mock("@calcom/features/bookings/repositories/BookingRepository");
 vi.mock("@calcom/features/membership/repositories/MembershipRepository");
 vi.mock("@calcom/features/credentials/repositories/CredentialRepository");
+
+vi.mock("@calcom/prisma", () => ({
+  default: {},
+  prisma: {},
+}));
 
 type MockBooking = {
   userId: number;
@@ -68,9 +71,9 @@ const createMockTeamBooking = (
   }
 ) => {
   const booking: MockBooking = {
-    userId: overrides?.userId ?? 456,
+    userId: overrides?.userId ?? 123,
     user: {
-      id: overrides?.userId ?? 456,
+      id: overrides?.userId ?? 123,
       email: "test@example.com",
     },
     eventType: {
@@ -150,6 +153,7 @@ const createMockAuditLog = (
 
 type MockUser = {
   id: number;
+  uuid: string;
   name: string | null;
   email: string;
   avatarUrl: string | null;
@@ -157,17 +161,25 @@ type MockUser = {
 
 const createMockUser = (
   uuid?: string,
-  overrides?: Partial<{ id: number; name: string | null; email: string; avatarUrl: string | null }>
+  overrides?: Partial<{
+    id: number;
+    uuid: string;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  }>
 ) => {
+  const userUuid = uuid ?? overrides?.uuid ?? `user-uuid-${overrides?.id ?? 123}`;
   const user: MockUser = {
     id: overrides?.id ?? 123,
+    uuid: userUuid,
     name: (overrides && "name" in overrides ? overrides.name : "John Doe") as string | null,
     email: overrides?.email ?? "john@example.com",
     avatarUrl: (overrides && "avatarUrl" in overrides ? overrides.avatarUrl : null) as string | null,
   };
 
-  if (uuid) {
-    DB.users[uuid] = user;
+  if (userUuid) {
+    DB.users[userUuid] = user;
   }
 
   return user;
@@ -197,6 +209,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
   let mockUserRepository: {
     getUserOrganizationAndTeams: Mock<UserRepository["getUserOrganizationAndTeams"]>;
     findByUuid: Mock<UserRepository["findByUuid"]>;
+    findByUuids: Mock<UserRepository["findByUuids"]>;
   };
   let mockBookingAuditRepository: {
     create: Mock<IBookingAuditRepository["create"]>;
@@ -206,14 +219,13 @@ describe("BookingAuditViewerService - Integration Tests", () => {
   let mockMembershipRepository: {
     hasMembership: Mock<MembershipRepository["hasMembership"]>;
   };
-  let mockPermissionCheckService: {
-    checkPermission: Mock<PermissionCheckService["checkPermission"]>;
-  };
   let mockAttendeeRepository: {
     findById: Mock;
+    findByIds: Mock;
   };
   let mockCredentialRepository: {
     findByCredentialId: Mock<CredentialRepository["findByCredentialId"]>;
+    findByIds: Mock;
   };
   let mockLog: {
     error: Mock;
@@ -242,6 +254,9 @@ describe("BookingAuditViewerService - Integration Tests", () => {
       findByUuid: vi.fn().mockImplementation(({ uuid }: { uuid: string }) => {
         return Promise.resolve(DB.users[uuid] ?? null);
       }),
+      findByUuids: vi.fn().mockImplementation(({ uuids }: { uuids: string[] }) => {
+        return Promise.resolve(uuids.map((uuid) => DB.users[uuid]).filter(Boolean));
+      }),
     };
 
     mockBookingAuditRepository = {
@@ -262,18 +277,18 @@ describe("BookingAuditViewerService - Integration Tests", () => {
       }),
     };
 
-    mockPermissionCheckService = {
-      checkPermission: vi.fn(),
-    };
-
     mockAttendeeRepository = {
       findById: vi.fn().mockImplementation((id: number) => {
         return Promise.resolve(DB.attendees[id] ?? null);
+      }),
+      findByIds: vi.fn().mockImplementation(({ ids }: { ids: number[] }) => {
+        return Promise.resolve(ids.map((id) => DB.attendees[id]).filter(Boolean));
       }),
     };
 
     mockCredentialRepository = {
       findByCredentialId: vi.fn(),
+      findByIds: vi.fn().mockImplementation(() => Promise.resolve([])),
     };
 
     mockLog = {
@@ -288,9 +303,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     });
     vi.mocked(MembershipRepository).mockImplementation(function () {
       return mockMembershipRepository as unknown as MembershipRepository;
-    });
-    vi.mocked(PermissionCheckService).mockImplementation(function () {
-      return mockPermissionCheckService as unknown as PermissionCheckService;
     });
     vi.mocked(CredentialRepository).mockImplementation(function () {
       return mockCredentialRepository as unknown as CredentialRepository;
@@ -311,7 +323,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when user has permission to view audit logs", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should return enriched audit logs with actor information", async () => {
@@ -453,7 +464,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when enriching actor information", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should enrich USER actor with user details from repository", async () => {
@@ -475,7 +485,9 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockUserRepository.findByUuid).toHaveBeenCalledWith({ uuid: "user-uuid-456" });
+        expect(mockUserRepository.findByUuids).toHaveBeenCalledWith({
+          uuids: expect.arrayContaining(["user-uuid-456"]),
+        });
         expect(result.auditLogs[0].actor).toMatchObject({
           displayName: "Jane Smith",
           displayEmail: "jane@example.com",
@@ -519,7 +531,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
         });
       });
 
-      it("should show 'Cal.com' for SYSTEM actor", async () => {
+      it("should show 'Cal.diy' for SYSTEM actor", async () => {
         createMockAuditLog("booking-uid-123", {
           actorType: "SYSTEM",
           actorUserUuid: null,
@@ -544,7 +556,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
 
         expect(result.auditLogs[0].actor).toMatchObject({
           type: "SYSTEM",
-          displayName: "Cal.com",
+          displayName: "Cal.diy",
           displayEmail: null,
           displayAvatar: null,
         });
@@ -610,7 +622,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockAttendeeRepository.findById).toHaveBeenCalledWith(999);
+        expect(mockAttendeeRepository.findByIds).toHaveBeenCalledWith({ ids: [999] });
         expect(result.auditLogs[0].actor).toMatchObject({
           type: "ATTENDEE",
           displayName: "attendee@example.com",
@@ -637,7 +649,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockAttendeeRepository.findById).toHaveBeenCalledWith(888);
+        expect(mockAttendeeRepository.findByIds).toHaveBeenCalledWith({ ids: [888] });
         expect(result.auditLogs[0].actor.displayName).toBe("Meeting Participant");
         expect(result.auditLogs[0].actor.displayEmail).toBe("participant@example.com");
       });
@@ -660,7 +672,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockAttendeeRepository.findById).toHaveBeenCalledWith(777);
+        expect(mockAttendeeRepository.findByIds).toHaveBeenCalledWith({ ids: [777] });
         expect(result.auditLogs[0].actor).toMatchObject({
           type: "ATTENDEE",
           displayName: "Deleted Attendee",
@@ -673,7 +685,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when handling rescheduled bookings", () => {
       beforeEach(() => {
         createMockTeamBooking("new-booking-uid", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should include rescheduled from log when booking was created from reschedule", async () => {
@@ -768,10 +779,8 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     });
 
     describe("when permission check fails", () => {
-      it("should throw error when user lacks permission", async () => {
-        createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(false);
-        createMockMembership({ userId: 123, teamId: 100 });
+      it("should throw error when user is not the booking owner", async () => {
+        createMockTeamBooking("booking-uid-123", { teamId: 100, userId: 456 });
 
         await expect(
           service.getAuditLogsForBooking({
@@ -780,20 +789,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
             userEmail: "user@example.com",
             userTimeZone: "UTC",
             organizationId: 200,
-          })
-        ).rejects.toThrow(BookingAuditPermissionError);
-
-        expect(mockBookingAuditRepository.findAllForBooking).not.toHaveBeenCalled();
-      });
-
-      it("should throw error when organization ID is null", async () => {
-        await expect(
-          service.getAuditLogsForBooking({
-            bookingUid: "booking-uid-123",
-            userId: 123,
-            userEmail: "user@example.com",
-            userTimeZone: "UTC",
-            organizationId: null,
           })
         ).rejects.toThrow(BookingAuditPermissionError);
 
@@ -820,7 +815,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when handling different timezones", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should pass user timezone to action service for display formatting", async () => {
@@ -854,7 +848,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when handling seat audit actions", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should handle SEAT_BOOKED action with seat information", async () => {
@@ -976,7 +969,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when handling impersonatedBy context", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should enrich impersonatedBy when user exists", async () => {
@@ -1000,7 +992,9 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockUserRepository.findByUuid).toHaveBeenCalledWith({ uuid: "impersonator-uuid-456" });
+        expect(mockUserRepository.findByUuids).toHaveBeenCalledWith({
+          uuids: expect.arrayContaining(["impersonator-uuid-456"]),
+        });
         expect(result.auditLogs[0].impersonatedBy).toMatchObject({
           displayName: "Admin User",
           displayEmail: "admin@example.com",
@@ -1051,7 +1045,9 @@ describe("BookingAuditViewerService - Integration Tests", () => {
           organizationId: 200,
         });
 
-        expect(mockUserRepository.findByUuid).toHaveBeenCalledWith({ uuid: "impersonator-uuid-456" });
+        expect(mockUserRepository.findByUuids).toHaveBeenCalledWith({
+          uuids: expect.arrayContaining(["impersonator-uuid-456"]),
+        });
         expect(result.auditLogs[0].impersonatedBy).toMatchObject({
           displayName: "Deleted User",
           displayEmail: null,
@@ -1099,7 +1095,6 @@ describe("BookingAuditViewerService - Integration Tests", () => {
     describe("when enrichment fails for a single audit log", () => {
       beforeEach(() => {
         createMockTeamBooking("booking-uid-123", { teamId: 100 });
-        mockPermissionCheckService.checkPermission.mockResolvedValue(true);
       });
 
       it("should return fallback log with hasError when enrichActorInformation throws for USER actor without userUuid", async () => {
@@ -1211,7 +1206,7 @@ describe("BookingAuditViewerService - Integration Tests", () => {
 
         expect(result.auditLogs[2].id).toBe("another-successful-log");
         expect(result.auditLogs[2].hasError).toBeUndefined();
-        expect(result.auditLogs[2].actor.displayName).toBe("Cal.com");
+        expect(result.auditLogs[2].actor.displayName).toBe("Cal.diy");
       });
 
       it("should log error message when enrichment fails", async () => {

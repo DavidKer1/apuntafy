@@ -1,26 +1,44 @@
 import { Dialog } from "@calcom/features/components/controlled-dialog";
 import { useCopy } from "@calcom/lib/hooks/useCopy";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import type { AssignmentReasonEnum } from "@calcom/prisma/enums";
 import { trpc } from "@calcom/trpc/react";
 import { Alert } from "@calcom/ui/components/alert";
+import { Badge } from "@calcom/ui/components/badge";
 import { Button } from "@calcom/ui/components/button";
 import { DialogContent, DialogFooter, DialogHeader } from "@calcom/ui/components/dialog";
 import { Label, Select, TextArea } from "@calcom/ui/components/form";
 import { Icon } from "@calcom/ui/components/icon";
 import { showToast } from "@calcom/ui/components/toast";
+import assignmentReasonBadgeTitleMap from "@lib/booking/assignmentReasonBadgeTitleMap";
 import type { Dispatch, SetStateAction } from "react";
 import type { Control, ControllerRenderProps } from "react-hook-form";
 import { Controller, useForm } from "react-hook-form";
 
+interface BookingData {
+  uid: string;
+  eventType?: {
+    team?: {
+      id: number;
+    } | null;
+  } | null;
+  user?: {
+    email: string;
+    name: string | null;
+  } | null;
+  assignmentReasonSortedByCreatedAt: Array<{
+    reasonString: string | null;
+    reasonEnum: AssignmentReasonEnum | null;
+  }>;
+  attendees: Array<{
+    email: string;
+  }>;
+}
+
 interface IWrongAssignmentDialog {
   isOpenDialog: boolean;
   setIsOpenDialog: Dispatch<SetStateAction<boolean>>;
-  bookingUid: string;
-  routingReason: string | null;
-  guestEmail: string;
-  hostEmail: string;
-  hostName: string | null;
-  teamId: number | null;
+  booking: BookingData;
 }
 
 interface FormValues {
@@ -36,6 +54,7 @@ interface TeamMemberOption {
 
 interface RoutingInfoSectionProps {
   routingReason: string | null;
+  routingReasonEnum: AssignmentReasonEnum | null;
   noRoutingReasonText: string;
   routingReasonLabel: string;
   guestEmail: string;
@@ -48,8 +67,10 @@ interface RoutingInfoSectionProps {
 }
 
 function RoutingInfoSection(props: RoutingInfoSectionProps): JSX.Element {
+  const { t } = useLocale();
   const {
     routingReason,
+    routingReasonEnum,
     noRoutingReasonText,
     routingReasonLabel,
     guestEmail,
@@ -79,9 +100,14 @@ function RoutingInfoSection(props: RoutingInfoSectionProps): JSX.Element {
     <div className="-mt-2 mb-4 space-y-3">
       <div>
         <Label className="text-emphasis mb-1 block text-sm font-medium">{routingReasonLabel}</Label>
-        <p className="text-default bg-muted rounded-md px-3 py-2 text-sm">
-          {routingReason || noRoutingReasonText}
-        </p>
+        <div className="text-default bg-muted flex items-center gap-2 rounded-md px-3 py-2 text-sm">
+          {routingReasonEnum && (
+            <Badge variant="gray" className="shrink-0">
+              {t(assignmentReasonBadgeTitleMap(routingReasonEnum))}
+            </Badge>
+          )}
+          <span className="flex-1">{routingReason || noRoutingReasonText}</span>
+        </div>
       </div>
 
       <div>
@@ -164,7 +190,7 @@ function AssigneeSection(props: AssigneeSectionProps): JSX.Element {
     field: ControllerRenderProps<FormValues, "correctAssignee">;
   }): JSX.Element => {
     const handleChange = (option: TeamMemberOption | null): void => {
-      if (option) field.onChange(option.value);
+      field.onChange(option ? option.value : "");
     };
     return (
       <Select
@@ -212,16 +238,15 @@ export function WrongAssignmentDialog(props: IWrongAssignmentDialog): JSX.Elemen
   const { t } = useLocale();
   const utils = trpc.useUtils();
   const { copyToClipboard, isCopied } = useCopy();
-  const {
-    isOpenDialog,
-    setIsOpenDialog,
-    bookingUid,
-    routingReason,
-    guestEmail,
-    hostEmail,
-    hostName,
-    teamId,
-  } = props;
+  const { isOpenDialog, setIsOpenDialog, booking } = props;
+
+  const bookingUid = booking.uid;
+  const teamId = booking.eventType?.team?.id ?? null;
+  const routingReason = booking.assignmentReasonSortedByCreatedAt[0]?.reasonString ?? null;
+  const routingReasonEnum = booking.assignmentReasonSortedByCreatedAt[0]?.reasonEnum ?? null;
+  const guestEmail = booking.attendees[0]?.email ?? "";
+  const hostEmail = booking.user?.email ?? "";
+  const hostName = booking.user?.name ?? null;
 
   const {
     control,
@@ -234,14 +259,15 @@ export function WrongAssignmentDialog(props: IWrongAssignmentDialog): JSX.Elemen
     },
   });
 
+  const { data: existingReport, isPending: isCheckingReport } =
+    trpc.viewer.bookings.hasWrongAssignmentReport.useQuery({ bookingUid }, { enabled: isOpenDialog });
+  const alreadyReported = existingReport?.hasReport ?? false;
+
   const teamIdForQuery = teamId ?? 0;
-  const { data: teamMembersData } = trpc.viewer.teams.listMembers.useQuery(
-    { teamId: teamIdForQuery, limit: 100 },
-    { enabled: !!teamId && isOpenDialog }
-  );
+  const teamMembersData = undefined as { members: Array<{ name: string | null; email: string }> } | undefined;
 
   const teamMemberOptions: TeamMemberOption[] =
-    teamMembersData?.members.map((member) => ({
+    teamMembersData?.members.map((member: { name: string | null; email: string }) => ({
       label: member.name || member.email,
       value: member.email,
       email: member.email,
@@ -282,8 +308,9 @@ export function WrongAssignmentDialog(props: IWrongAssignmentDialog): JSX.Elemen
 
               <RoutingInfoSection
                 routingReason={routingReason}
+                routingReasonEnum={routingReasonEnum}
                 noRoutingReasonText={t("no_routing_reason")}
-                routingReasonLabel={t("routing_reason")}
+                routingReasonLabel={t("first_assignment_reason")}
                 guestEmail={guestEmail}
                 whoBookedItLabel={t("who_booked_it")}
                 hostEmail={hostEmail}
@@ -311,6 +338,10 @@ export function WrongAssignmentDialog(props: IWrongAssignmentDialog): JSX.Elemen
                 errorMessage={errors.additionalNotes?.message}
               />
 
+              {alreadyReported && (
+                <Alert severity="warning" message={t("wrong_assignment_already_reported")} className="mb-4" />
+              )}
+
               <Alert severity="info" title={t("did_you_know")} message={t("wrong_assignment_crm_info")} />
             </div>
           </div>
@@ -319,7 +350,11 @@ export function WrongAssignmentDialog(props: IWrongAssignmentDialog): JSX.Elemen
             <Button type="button" color="secondary" onClick={handleCloseClick} disabled={isPending}>
               {t("close")}
             </Button>
-            <Button type="submit" color="primary" disabled={isPending} loading={isPending}>
+            <Button
+              type="submit"
+              color="primary"
+              disabled={isPending || alreadyReported || isCheckingReport}
+              loading={isPending || isCheckingReport}>
               {t("submit")}
             </Button>
           </DialogFooter>

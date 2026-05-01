@@ -1,6 +1,6 @@
-import type { ActionSource } from "@calcom/features/booking-audit/lib/types/actionSource";
-
+import { MembershipRole } from "@calcom/prisma/enums";
 import authedProcedure from "../../../procedures/authedProcedure";
+import { createTeamPbacProcedure } from "../../../procedures/pbacProcedures";
 import publicProcedure from "../../../procedures/publicProcedure";
 import { router } from "../../../trpc";
 import { ZAddGuestsInputSchema } from "./addGuests.schema";
@@ -11,12 +11,14 @@ import { ZGetInputSchema } from "./get.schema";
 import { ZGetBookingAttendeesInputSchema } from "./getBookingAttendees.schema";
 import { ZGetBookingDetailsInputSchema } from "./getBookingDetails.schema";
 import { ZGetBookingHistoryInputSchema } from "./getBookingHistory.schema";
-import { ZInstantBookingInputSchema } from "./getInstantBookingLocation.schema";
+import { ZGetWrongAssignmentReportsInputSchema } from "./getWrongAssignmentReports.schema";
+import { ZHasWrongAssignmentReportInputSchema } from "./hasWrongAssignmentReport.schema";
 import { ZReportBookingInputSchema } from "./reportBooking.schema";
 import { ZReportWrongAssignmentInputSchema } from "./reportWrongAssignment.schema";
 import { ZRequestRescheduleInputSchema } from "./requestReschedule.schema";
+import { ZUpdateWrongAssignmentReportStatusInputSchema } from "./updateWrongAssignmentReportStatus.schema";
 import { bookingsProcedure } from "./util";
-import { makeUserActor } from "@calcom/features/booking-audit/lib/makeActor";
+
 export const bookingsRouter = router({
   get: authedProcedure.input(ZGetInputSchema).query(async ({ input, ctx }) => {
     const { getHandler } = await import("./get.handler");
@@ -33,7 +35,7 @@ export const bookingsRouter = router({
     return requestRescheduleHandler({
       ctx,
       input,
-      source: "WEBAPP"
+      source: "WEBAPP",
     });
   }),
 
@@ -62,11 +64,7 @@ export const bookingsRouter = router({
 
     return confirmHandler({
       ctx,
-      input: {
-        ...input,
-        actor: makeUserActor(ctx.user.uuid),
-        actionSource: "WEBAPP",
-      }
+      input,
     });
   }),
 
@@ -99,17 +97,6 @@ export const bookingsRouter = router({
     });
   }),
 
-  getInstantBookingLocation: publicProcedure
-    .input(ZInstantBookingInputSchema)
-    .query(async ({ input, ctx }) => {
-      const { getHandler } = await import("./getInstantBookingLocation.handler");
-
-      return getHandler({
-        ctx,
-        input,
-      });
-    }),
-
   reportBooking: authedProcedure.input(ZReportBookingInputSchema).mutation(async ({ input, ctx }) => {
     const { reportBookingHandler } = await import("./reportBooking.handler");
 
@@ -128,6 +115,16 @@ export const bookingsRouter = router({
         input,
       });
     }),
+  hasWrongAssignmentReport: authedProcedure
+    .input(ZHasWrongAssignmentReportInputSchema)
+    .query(async ({ input, ctx }) => {
+      const { hasWrongAssignmentReportHandler } = await import("./hasWrongAssignmentReport.handler");
+
+      return hasWrongAssignmentReportHandler({
+        ctx,
+        input,
+      });
+    }),
   getBookingHistory: authedProcedure.input(ZGetBookingHistoryInputSchema).query(async ({ input, ctx }) => {
     const { getBookingHistoryHandler } = await import("./getBookingHistory.handler");
 
@@ -136,4 +133,29 @@ export const bookingsRouter = router({
       input,
     });
   }),
+  getWrongAssignmentReports: createTeamPbacProcedure("booking.readTeamBookings", [
+    MembershipRole.ADMIN,
+    MembershipRole.OWNER,
+    MembershipRole.MEMBER,
+  ])
+    .input(ZGetWrongAssignmentReportsInputSchema)
+    .query(async ({ input }) => {
+      const { getWrongAssignmentReportsHandler } = await import("./getWrongAssignmentReports.handler");
+
+      return getWrongAssignmentReportsHandler({
+        input,
+      });
+    }),
+  updateWrongAssignmentReportStatus: authedProcedure
+    .input(ZUpdateWrongAssignmentReportStatusInputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const { updateWrongAssignmentReportStatusHandler } = await import(
+        "./updateWrongAssignmentReportStatus.handler"
+      );
+
+      return updateWrongAssignmentReportStatusHandler({
+        ctx,
+        input,
+      });
+    }),
 });

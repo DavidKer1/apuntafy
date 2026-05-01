@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 
-import { BookerLayoutSelector } from "@calcom/features/settings/BookerLayoutSelector";
+import { BookerLayoutSelector } from "~/settings/components/BookerLayoutSelector";
 import SectionBottomActions from "@calcom/features/settings/SectionBottomActions";
 import ThemeLabel from "@calcom/features/settings/ThemeLabel";
 import SettingsHeader from "@calcom/features/settings/appDir/SettingsHeader";
@@ -27,7 +27,6 @@ import { SettingsToggle, ColorPicker, Form } from "@calcom/ui/components/form";
 import { showToast } from "@calcom/ui/components/toast";
 import { useCalcomTheme } from "@calcom/ui/styles";
 
-import { UpgradeTeamsBadgeWebWrapper } from "~/billing/components/UpgradeTeamsBadgeWebWrapper";
 
 const useBrandColors = (
   currentTheme: string | null,
@@ -394,7 +393,7 @@ const AppearanceView = ({
             disabled={!hasPaidPlan || mutation?.isPending}
             description={t("removes_cal_branding", { appName: APP_NAME })}
             checked={hasPaidPlan ? hideBrandingValue : false}
-            Badge={<UpgradeTeamsBadgeWebWrapper />}
+            Badge={undefined}
             onCheckedChange={(checked) => {
               setHideBrandingValue(checked);
               mutation.mutate({ hideBranding: checked });

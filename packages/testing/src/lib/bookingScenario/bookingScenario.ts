@@ -1,54 +1,72 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import i18nMock from "../__mocks__/libServerI18n";
 import prismock from "../__mocks__/prisma";
-
+import type { TFunction } from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { vi } from "vitest";
 import "vitest-fetch-mock";
-import type { z } from "zod";
-
 import { appStoreMetadata } from "@calcom/app-store/appStoreMetaData";
-import { weekdayToWeekIndex, type WeekDays } from "@calcom/lib/dayjs";
+import { type WeekDays, weekdayToWeekIndex } from "@calcom/lib/dayjs";
 import type { IntervalLimit } from "@calcom/lib/intervalLimits/intervalLimitSchema";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
-import type { BookingReference, Attendee, Booking, Membership } from "@calcom/prisma/client";
-import type { Prisma } from "@calcom/prisma/client";
-import type { WebhookTriggerEvents } from "@calcom/prisma/client";
 import type {
-  WorkflowActions,
-  WorkflowTemplates,
-  WorkflowTriggerEvents,
-  WorkflowMethods,
+  Attendee,
+  Booking,
+  BookingReference,
+  Membership,
+  Prisma,
+  WebhookTriggerEvents,
 } from "@calcom/prisma/client";
-import type { PaymentOption, SchedulingType, SMSLockState, TimeUnit } from "@calcom/prisma/enums";
-import type { BookingStatus } from "@calcom/prisma/enums";
-import type { teamMetadataSchema } from "@calcom/prisma/zod-utils";
-import type { userMetadataType } from "@calcom/prisma/zod-utils";
-import type { eventTypeBookingFields } from "@calcom/prisma/zod-utils";
-import type { EventTypeMetaDataSchema } from "@calcom/prisma/zod-utils";
+import type {
+  BookingStatus,
+  PaymentOption,
+  SchedulingType,
+  SMSLockState,
+  TimeUnit,
+} from "@calcom/prisma/enums";
+import type {
+  EventTypeMetaDataSchema,
+  eventTypeBookingFields,
+  teamMetadataSchema,
+  userMetadataType,
+} from "@calcom/prisma/zod-utils";
 import type { AppMeta } from "@calcom/types/App";
 import type {
   Calendar,
   CalendarEvent,
+  EventBusyDate,
   IntegrationCalendar,
   NewCalendarEventType,
-  EventBusyDate,
 } from "@calcom/types/Calendar";
 import type { CredentialPayload } from "@calcom/types/Credential";
 import type { VideoApiAdapter } from "@calcom/types/VideoApiAdapter";
-
-import { getMockPaymentService } from "./MockPaymentService";
+import type { z } from "zod";
 import type { getMockRequestDataForBooking } from "./getMockRequestDataForBooking";
+import { getMockPaymentService } from "./MockPaymentService";
 
 type NonNullableVideoApiAdapter = NonNullable<VideoApiAdapter>;
+
+// Shared map of mock calendar service constructors accessible to both the vi.mock factory and mockCalendar.
+// Using a Proxy-based CalendarServiceMap ensures any calendar service key is automatically mocked,
+// preventing real module imports (e.g., feishu/lark) that trigger async fetch calls during worker shutdown.
+const calendarServiceConstructorMocks: Record<string, ReturnType<typeof vi.fn>> = {};
+
+function getOrCreateCalendarServiceMock(key: string): ReturnType<typeof vi.fn> {
+  if (!calendarServiceConstructorMocks[key]) {
+    calendarServiceConstructorMocks[key] = vi.fn();
+  }
+  return calendarServiceConstructorMocks[key];
+}
+
 vi.mock("@calcom/app-store/calendar.services.generated", () => ({
-  CalendarServiceMap: {
-    googlecalendar: Promise.resolve({ default: vi.fn() }),
-    office365calendar: Promise.resolve({ default: vi.fn() }),
-    applecalendar: Promise.resolve({ default: vi.fn() }),
-    caldavcalendar: Promise.resolve({ default: vi.fn() }),
-  },
+  CalendarServiceMap: new Proxy({} as Record<string, Promise<{ default: ReturnType<typeof vi.fn> }>>, {
+    get(_target, prop: string) {
+      if (typeof prop === "symbol") return undefined;
+      return Promise.resolve({ default: getOrCreateCalendarServiceMock(prop) });
+    },
+  }),
 }));
 
 const mockVideoAdapterRegistry: Record<string, unknown> = {};
@@ -57,7 +75,7 @@ vi.mock("@calcom/app-store/video.adapters.generated", () => ({
   VideoApiAdapterMap: new Proxy(
     {},
     {
-      get(target, prop) {
+      get(_target, prop) {
         if (typeof prop === "string" && mockVideoAdapterRegistry[prop]) {
           return mockVideoAdapterRegistry[prop];
         }
@@ -67,10 +85,7 @@ vi.mock("@calcom/app-store/video.adapters.generated", () => ({
   ),
 }));
 
-// We don't need to test it. Also, it causes Formbricks error when imported
-vi.mock("@calcom/features/routing-forms/lib/findTeamMembersMatchingAttributeLogic", () => ({
-  default: {},
-}));
+// Routing forms feature removed - mock no longer needed
 
 vi.mock("@calcom/lib/crypto", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@calcom/lib/crypto")>();
@@ -99,22 +114,6 @@ type InputWebhook = {
   timeUnit?: TimeUnit | null;
 };
 
-type InputWorkflow = {
-  id?: number;
-  userId?: number | null;
-  teamId?: number | null;
-  name?: string;
-  activeOn?: number[];
-  activeOnTeams?: number[];
-  trigger: WorkflowTriggerEvents;
-  action: WorkflowActions;
-  template: WorkflowTemplates;
-  time?: number | null;
-  timeUnit?: TimeUnit | null;
-  sendTo?: string;
-  verifiedAt?: Date;
-};
-
 type InputPayment = {
   id?: number;
   uid: string;
@@ -128,16 +127,6 @@ type InputPayment = {
   data: Prisma.InputJsonValue;
   externalId: string;
   paymentOption?: PaymentOption;
-};
-
-type InputWorkflowReminder = {
-  id?: number;
-  bookingUid: string;
-  method: WorkflowMethods;
-  scheduledDate: Date;
-  scheduled: boolean;
-  workflowStepId?: number;
-  workflowId: number;
 };
 
 type InputHostLocation = {
@@ -184,7 +173,6 @@ export type ScenarioData = {
   apps?: Partial<AppMeta>[];
   bookings?: InputBooking[];
   webhooks?: InputWebhook[];
-  workflows?: InputWorkflow[];
   payment?: InputPayment[];
   selectedSlots?: InputSelectedSlot[];
 };
@@ -390,10 +378,7 @@ async function addHostsToDb(eventTypes: InputEventType[]) {
 }
 
 export async function addEventTypesToDb(
-  eventTypes: (Omit<
-    Prisma.EventTypeCreateInput,
-    "users" | "workflows" | "destinationCalendar" | "schedule"
-  > & {
+  eventTypes: (Omit<Prisma.EventTypeCreateInput, "users" | "destinationCalendar" | "schedule"> & {
     id?: number;
     users?: ({ id: number } | undefined)[];
     userId?: number;
@@ -401,7 +386,6 @@ export async function addEventTypesToDb(
       user: InputUser | undefined;
       id: number;
     }[];
-    workflows?: Prisma.WorkflowCreateInput[];
     destinationCalendar?: {
       create: Prisma.DestinationCalendarCreateInput;
     };
@@ -434,7 +418,6 @@ export async function addEventTypesToDb(
   const allEventTypes = await prismock.eventType.findMany({
     include: {
       users: true,
-      workflows: true,
       destinationCalendar: true,
       schedule: true,
       hostGroups: true,
@@ -545,7 +528,6 @@ export async function addEventTypes(eventTypes: InputEventType[], usersStore: In
     return {
       ...baseEventType,
       ...eventType,
-      workflows: [],
       users,
       hosts,
       hostGroups: eventType.hostGroups || [],
@@ -578,7 +560,7 @@ export async function addEventTypes(eventTypes: InputEventType[], usersStore: In
                   data: eventType.restrictionSchedule.create.availability.createMany.data,
                 },
               },
-              user: { connect: { id: eventType.userId || (eventType.users && eventType.users[0]?.id) || 1 } },
+              user: { connect: { id: eventType.userId || eventType.users?.[0]?.id || 1 } },
             },
           }
         : undefined,
@@ -650,7 +632,6 @@ export async function addBookings(bookings: InputBooking[]) {
     }
     return {
       uid: booking.uid || uuidv4(),
-      workflowReminders: [],
       references: [],
       title: "Test Booking Title",
       ...booking,
@@ -724,96 +705,6 @@ async function addWebhooks(webhooks: InputWebhook[]) {
   log.silly("TestData: Creating Webhooks", safeStringify(webhooks));
 
   await addWebhooksToDb(webhooks);
-}
-
-async function addWorkflowsToDb(workflows: InputWorkflow[]) {
-  await Promise.all(
-    workflows.map(async (workflow) => {
-      const team = await prismock.team.findUnique({
-        where: {
-          id: workflow.teamId ?? 0,
-        },
-      });
-
-      if (workflow.teamId && !team) {
-        throw new Error(`Team with ID ${workflow.teamId} not found`);
-      }
-
-      const isOrg = team?.isOrganization;
-
-      // Create the workflow first
-      const createdWorkflow = await prismock.workflow.create({
-        data: {
-          ...(workflow.id && { id: workflow.id }),
-          userId: workflow.userId,
-          teamId: workflow.teamId,
-          trigger: workflow.trigger,
-          name: workflow.name ? workflow.name : "Test Workflow",
-          time: workflow.time,
-          timeUnit: workflow.timeUnit,
-        },
-        include: {
-          steps: true,
-        },
-      });
-
-      await prismock.workflowStep.create({
-        data: {
-          stepNumber: 1,
-          action: workflow.action,
-          template: workflow.template,
-          numberVerificationPending: false,
-          includeCalendarEvent: false,
-          sendTo: workflow.sendTo,
-          workflow: {
-            connect: {
-              id: createdWorkflow.id,
-            },
-          },
-          verifiedAt: workflow?.verifiedAt ?? new Date(),
-        },
-      });
-
-      //activate event types and teams on workflows
-      if (isOrg && workflow.activeOnTeams) {
-        await Promise.all(
-          workflow.activeOnTeams.map((id) =>
-            prismock.workflowsOnTeams.create({
-              data: {
-                workflowId: createdWorkflow.id,
-                teamId: id,
-              },
-            })
-          )
-        );
-      } else if (workflow.activeOn) {
-        await Promise.all(
-          workflow.activeOn.map((id) =>
-            prismock.workflowsOnEventTypes.create({
-              data: {
-                workflowId: createdWorkflow.id,
-                eventTypeId: id,
-              },
-            })
-          )
-        );
-      }
-    })
-  );
-}
-
-async function addWorkflows(workflows: InputWorkflow[]) {
-  log.silly("TestData: Creating Workflows", safeStringify(workflows));
-
-  return await addWorkflowsToDb(workflows);
-}
-
-export async function addWorkflowReminders(workflowReminders: InputWorkflowReminder[]) {
-  log.silly("TestData: Creating Workflow Reminders", safeStringify(workflowReminders));
-
-  return await prismock.workflowReminder.createMany({
-    data: workflowReminders,
-  });
 }
 
 export async function addUsersToDb(users: InputUser[]) {
@@ -1036,7 +927,6 @@ export async function createBookingScenario(data: ScenarioData) {
   // mockBusyCalendarTimes([]);
   await addWebhooks(data.webhooks || []);
   // addPaymentMock();
-  const workflows = await addWorkflows(data.workflows || []);
   await addPaymentToDb(data.payment || []);
 
   if (data.selectedSlots) {
@@ -1045,7 +935,6 @@ export async function createBookingScenario(data: ScenarioData) {
 
   return {
     eventTypes,
-    workflows,
   };
 }
 
@@ -1131,12 +1020,7 @@ export async function createCredentials(
  *  use vi.setSystemTime to fix the date and time and then use hardcoded days instead of dynamic date calculation.
  */
 export const getDate = (
-  param: {
-    dateIncrement?: number;
-    monthIncrement?: number;
-    yearIncrement?: number;
-    fromDate?: Date;
-  } = {}
+  param: { dateIncrement?: number; monthIncrement?: number; yearIncrement?: number; fromDate?: Date } = {}
 ) => {
   let { dateIncrement, monthIncrement, yearIncrement, fromDate } = param;
 
@@ -1623,7 +1507,6 @@ export function getScenarioData(
     apps = [],
     users: _users,
     webhooks,
-    workflows,
     bookings,
     payment,
   }: {
@@ -1633,7 +1516,6 @@ export function getScenarioData(
     users?: ScenarioData["users"];
     usersApartFromOrganizer?: ScenarioData["users"];
     webhooks?: ScenarioData["webhooks"];
-    workflows?: ScenarioData["workflows"];
     bookings?: ScenarioData["bookings"];
     payment?: ScenarioData["payment"];
   },
@@ -1697,7 +1579,6 @@ export function getScenarioData(
     apps: [...apps],
     webhooks,
     bookings: bookings || [],
-    workflows,
     payment,
   } satisfies ScenarioData;
 }
@@ -1716,13 +1597,13 @@ export function mockNoTranslations() {
   log.silly("Mocking i18n.getTranslation to return identity function");
   i18nMock.getTranslation.mockImplementation(() => {
     return new Promise((resolve) => {
-      const identityFn = (key: string) => key;
+      const identityFn = ((key: string) => key) as TFunction<string, undefined>;
       resolve(identityFn);
     });
   });
 }
 
-export const enum BookingLocations {
+export enum BookingLocations {
   CalVideo = "integrations:daily",
   ZoomVideo = "integrations:zoom",
   GoogleMeet = "integrations:google:meet",
@@ -1830,171 +1711,159 @@ export async function mockCalendar(
   const getAvailabilityCalls: GetAvailabilityMethodMockCall[] = [];
   const app = appStoreMetadata[metadataLookupKey as keyof typeof appStoreMetadata];
 
-  const { CalendarServiceMap } = await import("@calcom/app-store/calendar.services.generated");
-  const calendarServiceKey = appStoreLookupKey as keyof typeof CalendarServiceMap;
-
-  const calendarServicePromise = CalendarServiceMap[calendarServiceKey];
-  if (calendarServicePromise) {
-    const resolvedService = await calendarServicePromise;
-    vi.mocked(resolvedService.default).mockImplementation(function MockCalendarService(credential) {
-        return {
-          createEvent: async function (
-            ...rest: Parameters<Calendar["createEvent"]>
-          ): Promise<NewCalendarEventType> {
-            if (calendarData?.creationCrash) {
-              throw new Error("MockCalendarService.createEvent fake error");
-            }
-            const [calEvent, credentialId, externalCalendarId] = rest;
-            log.debug(
-              "mockCalendar.createEvent",
-              JSON.stringify({ calEvent, credentialId, externalCalendarId })
-            );
-            createEventCalls.push({
-              args: {
-                calEvent,
-                credentialId,
-                externalCalendarId,
-              },
-              calendarServiceConstructorArgs: {
-                credential,
-              },
-            });
-            const isGoogleMeetLocation = calEvent?.location === BookingLocations.GoogleMeet;
-            if (app.type === "google_calendar") {
-              return Promise.resolve({
-                type: app.type,
-                additionalInfo: {
-                  hangoutLink:
-                    normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
-                    "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
-                },
-                hangoutLink:
-                  normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
-                  "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
-                uid: normalizedCalendarData.create?.uid || "GOOGLE_CALENDAR_EVENT_ID",
-                id: normalizedCalendarData.create?.id || "GOOGLE_CALENDAR_EVENT_ID",
-                iCalUID:
-                  normalizedCalendarData.create?.iCalUID || calEvent.iCalUID || "GOOGLE_CALENDAR_EVENT_ID",
-                password: "MOCK_PASSWORD",
-                url:
-                  normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
-                  "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
-              });
-            } else if (app.type === "office365_calendar") {
-              return Promise.resolve({
-                type: app.type,
-                additionalInfo: {},
-                uid: normalizedCalendarData.create?.uid || "OFFICE_365_CALENDAR_EVENT_ID",
-                id: normalizedCalendarData.create?.id || "OFFICE_365_CALENDAR_EVENT_ID",
-                iCalUID:
-                  normalizedCalendarData.create?.iCalUID ||
-                  calEvent.iCalUID ||
-                  "OFFICE_365_CALENDAR_EVENT_ID",
-                password: "MOCK_PASSWORD",
-                url:
-                  normalizedCalendarData.create?.appSpecificData?.office365Calendar?.url ||
-                  "https://UNUSED_URL",
-              });
-            } else {
-              return Promise.resolve({
-                type: app.type,
-                additionalInfo: {},
-                uid: "PROBABLY_UNUSED_UID",
-                hangoutLink:
-                  (isGoogleMeetLocation
-                    ? normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink
-                    : null) || "https://UNUSED_URL",
-                // A Calendar is always expected to return an id.
-                id: normalizedCalendarData.create?.id || "FALLBACK_MOCK_CALENDAR_EVENT_ID",
-                iCalUID: normalizedCalendarData.create?.iCalUID,
-                // Password and URL seems useless for CalendarService, plan to remove them if that's the case
-                password: "MOCK_PASSWORD",
-                url: "https://UNUSED_URL",
-              });
-            }
+  // Use the shared mock map directly instead of dynamically importing calendar.services.generated.
+  // This avoids loading real calendar service modules (which can trigger async fetch calls that
+  // cause "Closing rpc while fetch was pending" errors when the test worker shuts down).
+  const mockCalendarServiceConstructor = getOrCreateCalendarServiceMock(appStoreLookupKey);
+  mockCalendarServiceConstructor.mockImplementation(function MockCalendarService(credential) {
+    return {
+      createEvent: async (...rest: Parameters<Calendar["createEvent"]>): Promise<NewCalendarEventType> => {
+        if (calendarData?.creationCrash) {
+          throw new Error("MockCalendarService.createEvent fake error");
+        }
+        const [calEvent, credentialId, externalCalendarId] = rest;
+        log.debug(
+          "mockCalendar.createEvent",
+          JSON.stringify({ calEvent, credentialId, externalCalendarId })
+        );
+        createEventCalls.push({
+          args: {
+            calEvent,
+            credentialId,
+            externalCalendarId,
           },
-          updateEvent: async function (
-            ...rest: Parameters<Calendar["updateEvent"]>
-          ): Promise<NewCalendarEventType> {
-            if (calendarData?.updationCrash) {
-              throw new Error("MockCalendarService.updateEvent fake error");
-            }
-            const [uid, event, externalCalendarId] = rest;
-            log.silly("mockCalendar.updateEvent", JSON.stringify({ uid, event, externalCalendarId }));
-            updateEventCalls.push({
-              args: {
-                uid,
-                event,
-                externalCalendarId,
-              },
-              calendarServiceConstructorArgs: {
-                credential,
-              },
-            });
-            const isGoogleMeetLocation = event.location === BookingLocations.GoogleMeet;
-            return Promise.resolve({
-              type: app.type,
-              additionalInfo: {},
-              uid: "PROBABLY_UNUSED_UID",
-              iCalUID: normalizedCalendarData.update?.iCalUID,
-              id: normalizedCalendarData.update?.uid || "FALLBACK_MOCK_ID",
-              // Password and URL seems useless for CalendarService, plan to remove them if that's the case
-              password: "MOCK_PASSWORD",
-              url: "https://UNUSED_URL",
-              location: isGoogleMeetLocation ? "https://UNUSED_URL" : undefined,
+          calendarServiceConstructorArgs: {
+            credential,
+          },
+        });
+        const isGoogleMeetLocation = calEvent?.location === BookingLocations.GoogleMeet;
+        if (app.type === "google_calendar") {
+          return Promise.resolve({
+            type: app.type,
+            additionalInfo: {
               hangoutLink:
-                (isGoogleMeetLocation
-                  ? normalizedCalendarData.update?.appSpecificData?.googleCalendar?.hangoutLink
-                  : null) || "https://UNUSED_URL",
-              conferenceData: isGoogleMeetLocation ? event.conferenceData : undefined,
-            });
+                normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
+                "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
+            },
+            hangoutLink:
+              normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
+              "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
+            uid: normalizedCalendarData.create?.uid || "GOOGLE_CALENDAR_EVENT_ID",
+            id: normalizedCalendarData.create?.id || "GOOGLE_CALENDAR_EVENT_ID",
+            iCalUID:
+              normalizedCalendarData.create?.iCalUID || calEvent.iCalUID || "GOOGLE_CALENDAR_EVENT_ID",
+            password: "MOCK_PASSWORD",
+            url:
+              normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink ||
+              "https://GOOGLE_MEET_URL_IN_CALENDAR_EVENT",
+          });
+        } else if (app.type === "office365_calendar") {
+          return Promise.resolve({
+            type: app.type,
+            additionalInfo: {},
+            uid: normalizedCalendarData.create?.uid || "OFFICE_365_CALENDAR_EVENT_ID",
+            id: normalizedCalendarData.create?.id || "OFFICE_365_CALENDAR_EVENT_ID",
+            iCalUID:
+              normalizedCalendarData.create?.iCalUID || calEvent.iCalUID || "OFFICE_365_CALENDAR_EVENT_ID",
+            password: "MOCK_PASSWORD",
+            url:
+              normalizedCalendarData.create?.appSpecificData?.office365Calendar?.url ||
+              "https://UNUSED_URL",
+          });
+        } else {
+          return Promise.resolve({
+            type: app.type,
+            additionalInfo: {},
+            uid: "PROBABLY_UNUSED_UID",
+            hangoutLink:
+              (isGoogleMeetLocation
+                ? normalizedCalendarData.create?.appSpecificData?.googleCalendar?.hangoutLink
+                : null) || "https://UNUSED_URL",
+            // A Calendar is always expected to return an id.
+            id: normalizedCalendarData.create?.id || "FALLBACK_MOCK_CALENDAR_EVENT_ID",
+            iCalUID: normalizedCalendarData.create?.iCalUID,
+            // Password and URL seems useless for CalendarService, plan to remove them if that's the case
+            password: "MOCK_PASSWORD",
+            url: "https://UNUSED_URL",
+          });
+        }
+      },
+      updateEvent: async (...rest: Parameters<Calendar["updateEvent"]>): Promise<NewCalendarEventType> => {
+        if (calendarData?.updationCrash) {
+          throw new Error("MockCalendarService.updateEvent fake error");
+        }
+        const [uid, event, externalCalendarId] = rest;
+        log.silly("mockCalendar.updateEvent", JSON.stringify({ uid, event, externalCalendarId }));
+        updateEventCalls.push({
+          args: {
+            uid,
+            event,
+            externalCalendarId,
           },
-          deleteEvent: async (...rest: Parameters<Calendar["deleteEvent"]>) => {
-            log.silly("mockCalendar.deleteEvent", JSON.stringify({ rest }));
-            deleteEventCalls.push({
-              args: {
-                uid: rest[0],
-                event: rest[1],
-                externalCalendarId: rest[2],
-              },
-              calendarServiceConstructorArgs: {
-                credential,
-              },
-            });
+          calendarServiceConstructorArgs: {
+            credential,
           },
-          getAvailability: async (params: {
-            dateFrom: string;
-            dateTo: string;
-            selectedCalendars: IntegrationCalendar[];
-            mode: "slots" | "overlay" | "booking";
-            fallbackToPrimary?: boolean;
-          }): Promise<EventBusyDate[]> => {
-            const { dateFrom, dateTo, selectedCalendars, mode } = params;
-            if (calendarData?.getAvailabilityCrash) {
-              throw new Error("MockCalendarService.getAvailability fake error");
-            }
-            getAvailabilityCalls.push({
-              args: {
-                dateFrom,
-                dateTo,
-                selectedCalendars,
-                mode,
-              },
-              calendarServiceConstructorArgs: {
-                credential,
-              },
-            });
-            return new Promise((resolve) => {
-              resolve(calendarData?.busySlots || []);
-            });
+        });
+        const isGoogleMeetLocation = event.location === BookingLocations.GoogleMeet;
+        return Promise.resolve({
+          type: app.type,
+          additionalInfo: {},
+          uid: "PROBABLY_UNUSED_UID",
+          iCalUID: normalizedCalendarData.update?.iCalUID,
+          id: normalizedCalendarData.update?.uid || "FALLBACK_MOCK_ID",
+          // Password and URL seems useless for CalendarService, plan to remove them if that's the case
+          password: "MOCK_PASSWORD",
+          url: "https://UNUSED_URL",
+          location: isGoogleMeetLocation ? "https://UNUSED_URL" : undefined,
+          hangoutLink:
+            (isGoogleMeetLocation
+              ? normalizedCalendarData.update?.appSpecificData?.googleCalendar?.hangoutLink
+              : null) || "https://UNUSED_URL",
+          conferenceData: isGoogleMeetLocation ? event.conferenceData : undefined,
+        });
+      },
+      deleteEvent: async (...rest: Parameters<Calendar["deleteEvent"]>) => {
+        log.silly("mockCalendar.deleteEvent", JSON.stringify({ rest }));
+        deleteEventCalls.push({
+          args: {
+            uid: rest[0],
+            event: rest[1],
+            externalCalendarId: rest[2],
           },
-          listCalendars: async function (): Promise<IntegrationCalendar[]> {
-            return Promise.resolve([]);
+          calendarServiceConstructorArgs: {
+            credential,
           },
-        } as Calendar;
-      }
-    );
-  }
+        });
+      },
+      getAvailability: async (params: {
+        dateFrom: string;
+        dateTo: string;
+        selectedCalendars: IntegrationCalendar[];
+        mode: "slots" | "overlay" | "booking";
+        fallbackToPrimary?: boolean;
+      }): Promise<EventBusyDate[]> => {
+        const { dateFrom, dateTo, selectedCalendars, mode } = params;
+        if (calendarData?.getAvailabilityCrash) {
+          throw new Error("MockCalendarService.getAvailability fake error");
+        }
+        getAvailabilityCalls.push({
+          args: {
+            dateFrom,
+            dateTo,
+            selectedCalendars,
+            mode,
+          },
+          calendarServiceConstructorArgs: {
+            credential,
+          },
+        });
+        return new Promise((resolve) => {
+          resolve(calendarData?.busySlots || []);
+        });
+      },
+      listCalendars: async (): Promise<IntegrationCalendar[]> => Promise.resolve([]),
+    } as Calendar;
+  });
 
   return {
     createEventCalls,

@@ -1,14 +1,12 @@
-import type { TFunction } from "i18next";
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { FieldError } from "react-hook-form";
-
 import { getPaymentAppData } from "@calcom/app-store/_utils/payments/getPaymentAppData";
 import { useIsPlatformBookerEmbed } from "@calcom/atoms/hooks/useIsPlatformBookerEmbed";
 import { useBookerStoreContext } from "@calcom/features/bookings/Booker/BookerStoreProvider";
+import { useBookerTime } from "@calcom/features/bookings/Booker/hooks/useBookerTime";
+import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/hooks/useBookingForm";
+import { formatEventFromTime } from "@calcom/features/bookings/Booker/utils/dates";
 import type { BookerEvent } from "@calcom/features/bookings/types";
 import ServerTrans from "@calcom/lib/components/ServerTrans";
-import { WEBSITE_PRIVACY_POLICY_URL, WEBSITE_TERMS_URL } from "@calcom/lib/constants";
+import { APP_NAME, WEBSITE_PRIVACY_POLICY_URL, WEBSITE_TERMS_URL } from "@calcom/lib/constants";
 import { ErrorCode } from "@calcom/lib/errorCodes";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import type { TimeFormat } from "@calcom/lib/timeFormat";
@@ -16,11 +14,11 @@ import { Alert } from "@calcom/ui/components/alert";
 import { Button } from "@calcom/ui/components/button";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
 import { Form } from "@calcom/ui/components/form";
-
-import { formatEventFromTime } from "@calcom/features/bookings/Booker/utils/dates";
-import { useBookerTime } from "@calcom/features/bookings/Booker/components/hooks/useBookerTime";
-import type { UseBookingFormReturnType } from "@calcom/features/bookings/Booker/components/hooks/useBookingForm";
-import type { IUseBookingErrors, IUseBookingLoadingStates } from "@calcom/features/bookings/Booker/components/hooks/useBookings";
+import type { TFunction } from "i18next";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import type { FieldError } from "react-hook-form";
+import type { IUseBookingErrors, IUseBookingLoadingStates } from "../../hooks/useBookings";
 import { BookingFields } from "./BookingFields";
 import { FormSkeleton } from "./Skeleton";
 
@@ -30,7 +28,6 @@ type BookEventFormProps = {
   errorRef: React.RefObject<HTMLDivElement>;
   errors: UseBookingFormReturnType["errors"] & IUseBookingErrors;
   loadingStates: IUseBookingLoadingStates;
-  children?: React.ReactNode;
   bookingForm: UseBookingFormReturnType["bookingForm"];
   renderConfirmNotVerifyEmailButtonCond: boolean;
   extraOptions: Record<string, string | string[]>;
@@ -55,7 +52,6 @@ export const BookEventForm = ({
   loadingStates,
   renderConfirmNotVerifyEmailButtonCond,
   bookingForm,
-  children,
   extraOptions,
   isVerificationCodeSending,
   isPlatform = false,
@@ -76,7 +72,6 @@ export const BookEventForm = ({
   const bookingData = useBookerStoreContext((state) => state.bookingData);
   const rescheduleUid = useBookerStoreContext((state) => state.rescheduleUid);
   const username = useBookerStoreContext((state) => state.username);
-  const isInstantMeeting = useBookerStoreContext((state) => state.isInstantMeeting);
   const isPlatformBookerEmbed = useIsPlatformBookerEmbed();
   const { timeFormat, timezone } = useBookerTime();
 
@@ -115,9 +110,9 @@ export const BookEventForm = ({
   const watchedCfToken = bookingForm.watch("cfToken");
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col h-full">
       <Form
-        className="flex h-full flex-col"
+        className="flex flex-col h-full"
         onChange={() => {
           // Form data is saved in store. This way when user navigates back to
           // still change the timeslot, and comes back to the form, all their values
@@ -180,10 +175,11 @@ export const BookEventForm = ({
         ) : null}
 
         {!isPlatform && (
-          <div className="text-subtle my-3 w-full text-xs">
+          <div className="my-3 w-full text-xs text-subtle">
             <ServerTrans
               t={t}
               i18nKey="signing_up_terms"
+              values={{ appName: APP_NAME }}
               components={[
                 <Link
                   className="text-emphasis hover:underline"
@@ -205,7 +201,7 @@ export const BookEventForm = ({
         )}
 
         {isPlatformBookerEmbed && (
-          <div className="text-subtle my-3 w-full text-xs">
+          <div className="my-3 w-full text-xs text-subtle">
             {t("proceeding_agreement")}{" "}
             <Link
               className="text-emphasis hover:underline"
@@ -225,52 +221,41 @@ export const BookEventForm = ({
             .
           </div>
         )}
-        <div className="modalsticky mt-auto flex justify-end space-x-2 rtl:space-x-reverse">
-          {isInstantMeeting ? (
-            <Button type="submit" color="primary" loading={loadingStates.creatingInstantBooking}>
-              {isPaidEvent ? t("pay_and_book") : t("confirm")}
+        <div className="flex justify-end mt-auto space-x-2 modalsticky rtl:space-x-reverse">
+          {!!onCancel && (
+            <Button
+              color="minimal"
+              type="button"
+              onClick={onCancel}
+              data-testid="back"
+              className={classNames?.backButton}>
+              {t("back")}
             </Button>
-          ) : (
-            <>
-              {!!onCancel && (
-                <Button
-                  color="minimal"
-                  type="button"
-                  onClick={onCancel}
-                  data-testid="back"
-                  className={classNames?.backButton}>
-                  {t("back")}
-                </Button>
-              )}
-
-              <Button
-                type="submit"
-                color="primary"
-                disabled={
-                  (!!shouldRenderCaptcha && !watchedCfToken) || isTimeslotUnavailable || confirmButtonDisabled
-                }
-                loading={
-                  loadingStates.creatingBooking ||
-                  loadingStates.creatingRecurringBooking ||
-                  isVerificationCodeSending
-                }
-                className={classNames?.confirmButton}
-                data-testid={
-                  rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"
-                }>
-                {rescheduleUid && bookingData
-                  ? t("reschedule")
-                  : renderConfirmNotVerifyEmailButtonCond
-                  ? isPaidEvent
-                    ? t("pay_and_book")
-                    : t("confirm")
-                  : t("verify_email_button")}
-              </Button>
-            </>
           )}
+
+          <Button
+            type="submit"
+            color="primary"
+            disabled={
+              (!!shouldRenderCaptcha && !watchedCfToken) || isTimeslotUnavailable || confirmButtonDisabled
+            }
+            loading={
+              loadingStates.creatingBooking ||
+              loadingStates.creatingRecurringBooking ||
+              isVerificationCodeSending
+            }
+            className={classNames?.confirmButton}
+            data-testid={rescheduleUid && bookingData ? "confirm-reschedule-button" : "confirm-book-button"}>
+            {rescheduleUid && bookingData
+              ? t("reschedule")
+              : renderConfirmNotVerifyEmailButtonCond
+                ? isPaidEvent
+                  ? t("pay_and_book")
+                  : t("confirm")
+                : t("verify_email_button")}
+          </Button>
         </div>
       </Form>
-      {children}
     </div>
   );
 };
@@ -324,9 +309,9 @@ const getError = ({
     <>
       {responseVercelIdHeader ?? ""} {t(messageKey, { date, count })}
       {error.data?.traceId && (
-        <div className="text-subtle mt-2 text-xs">
+        <div className="mt-2 text-xs text-subtle">
           <span className="font-medium">{t("trace_reference_id")}:</span>
-          <code className="ml-1 select-all break-all font-mono">{error.data.traceId}</code>
+          <code className="ml-1 font-mono break-all select-all">{error.data.traceId}</code>
         </div>
       )}
     </>

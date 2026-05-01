@@ -11,7 +11,7 @@ import type { AppFrontendPayload as App } from "@calcom/types/App";
 import type { CredentialFrontendPayload as Credential } from "@calcom/types/Credential";
 import classNames from "@calcom/ui/classNames";
 import { EmptyScreen } from "@calcom/ui/components/empty-screen";
-import { Icon } from "@calcom/ui/components/icon";
+import { ChevronLeftIcon, ChevronRightIcon } from "@coss/ui/icons";
 
 import { AppCard } from "./AppCard";
 
@@ -89,10 +89,10 @@ function CategoryTab({ selectedCategory, categories, searchText, onCategoryChang
       </h2>
       {leftVisible && (
         <button onClick={handleLeft} className="absolute bottom-0 flex  lg:left-1/2">
-          <div className="bg-default flex h-12 w-5 items-center justify-end">
-            <Icon name="chevron-left" className="text-subtle h-4 w-4" />
+          <div className="bg-default flex h-10 w-5 items-center justify-end">
+            <ChevronLeftIcon className="text-subtle h-4 w-4" />
           </div>
-          <div className="to-default flex h-12 w-5 bg-linear-to-l from-transparent" />
+          <div className="to-default flex h-10 w-5 bg-linear-to-l from-transparent" />
         </button>
       )}
       <ul
@@ -129,9 +129,9 @@ function CategoryTab({ selectedCategory, categories, searchText, onCategoryChang
       </ul>
       {rightVisible && (
         <button onClick={handleRight} className="absolute bottom-0 right-0 flex ">
-          <div className="to-default flex h-12 w-5 bg-linear-to-r from-transparent" />
-          <div className="bg-default flex h-12 w-5 items-center justify-end">
-            <Icon name="chevron-right" className="text-subtle h-4 w-4" />
+          <div className="to-default flex h-10 w-5 bg-linear-to-r from-transparent" />
+          <div className="bg-default flex h-10 w-5 items-center justify-end">
+            <ChevronRightIcon className="text-subtle h-4 w-4" />
           </div>
         </button>
       )}
@@ -158,7 +158,14 @@ export function AllApps({ apps, searchText, categories, userAdminTeams }: AllApp
           : app.category === selectedCategory
         : true
     )
-    .filter((app) => (searchText ? app.name.toLowerCase().includes(searchText.toLowerCase()) : true))
+   .filter((app) =>
+  searchText
+    ? app.name
+        .toLowerCase()
+        .replace(/[\s\-_]/g, "")
+        .includes(searchText.toLowerCase().replace(/[\s\-_]/g, ""))
+    : true
+)
     .sort(function (a, b) {
       if (a.name < b.name) return -1;
       else if (a.name > b.name) return 1;

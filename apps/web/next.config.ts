@@ -3,15 +3,15 @@ import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 import type { RouteHas } from "next/dist/lib/load-custom-routes";
 import { withAxiom } from "next-axiom";
-
-import i18nConfig from "./next-i18next.config";
+import i18nConfig from "@calcom/i18n/next-i18next.config";
 import packageJson from "./package.json";
 import {
   nextJsOrgRewriteConfig,
   orgUserRoutePath,
-  orgUserTypeRoutePath,
   orgUserTypeEmbedRoutePath,
+  orgUserTypeRoutePath,
 } from "./pagesAndRewritePaths";
+import { TRIGGER_VERSION } from "./trigger.version"; // adjust path as needed
 
 dotenvConfig({ path: "../../.env" });
 
@@ -57,6 +57,10 @@ const isOrganizationsEnabled =
 const env = process.env as Record<string, string | undefined>;
 
 env.NEXT_PUBLIC_CALCOM_VERSION = version;
+
+if (process.env.NODE_ENV === "production" || process.env.CALCOM_ENV === "production") {
+  env.TRIGGER_VERSION = TRIGGER_VERSION;
+}
 
 if (process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_WEBAPP_URL) {
   env.NEXT_PUBLIC_WEBAPP_URL = `https://${process.env.VERCEL_URL}`;
@@ -245,11 +249,6 @@ const nextConfig = (phase: string): NextConfig => {
       "@coss/ui",
     ],
     modularizeImports: {
-      "@calcom/web/modules/insights/components": {
-        transform: "@calcom/web/modules/insights/components/{{member}}",
-        skipDefaultConversion: true,
-        preventFullImport: true,
-      },
       lodash: {
         transform: "lodash/{{member}}",
       },
@@ -268,14 +267,6 @@ const nextConfig = (phase: string): NextConfig => {
         {
           source: "/forms/:formQuery*",
           destination: "/apps/routing-forms/routing-link/:formQuery*",
-        },
-        {
-          source: "/routing",
-          destination: "/routing/forms",
-        },
-        {
-          source: "/routing/:path*",
-          destination: "/apps/routing-forms/:path*",
         },
         {
           source: "/routing-forms",
@@ -335,6 +326,10 @@ const nextConfig = (phase: string): NextConfig => {
       ].filter(isNotNull);
 
       const afterFiles = [
+        {
+          source: "/routing/:path*",
+          destination: "/apps/routing-forms/:path*",
+        },
         {
           source: "/org/:slug",
           destination: "/team/:slug",
@@ -612,11 +607,6 @@ const nextConfig = (phase: string): NextConfig => {
         {
           source: "/apps/installed",
           destination: "/apps/installed/calendar",
-          permanent: true,
-        },
-        {
-          source: "/settings/organizations/platform/:path*",
-          destination: "/settings/platform",
           permanent: true,
         },
         {

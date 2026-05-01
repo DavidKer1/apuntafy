@@ -1,11 +1,8 @@
-import { useSession } from "next-auth/react";
-import { useState } from "react";
-
 import { ENABLE_PROFILE_SWITCHER } from "@calcom/lib/constants";
 import { useRefreshData } from "@calcom/lib/hooks/useRefreshData";
 import { trpc } from "@calcom/trpc/react";
-import { Avatar } from "@calcom/ui/components/avatar";
 import classNames from "@calcom/ui/classNames";
+import { Avatar } from "@calcom/ui/components/avatar";
 import {
   Dropdown,
   DropdownItem,
@@ -14,7 +11,9 @@ import {
   DropdownMenuPortal,
   DropdownMenuTrigger,
 } from "@calcom/ui/components/dropdown";
-import { Icon } from "@calcom/ui/components/icon";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "@coss/ui/icons";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 export function ProfileDropdown() {
   const { update, data: sessionData } = useSession();
@@ -42,8 +41,8 @@ export function ProfileDropdown() {
   const currentOption = options.find((option) => option.value === sessionData.upId) || options[0];
 
   return (
-    <Dropdown open={menuOpen}>
-      <DropdownMenuTrigger asChild onClick={() => setMenuOpen((menuOpen) => !menuOpen)}>
+    <Dropdown open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenuTrigger asChild>
         <button
           data-testid="user-dropdown-trigger-button"
           className={classNames(
@@ -54,11 +53,11 @@ export function ProfileDropdown() {
             <span className="block w-20 overflow-hidden text-ellipsis whitespace-nowrap">
               {currentOption.label}
             </span>
-            <Icon
-              name="chevron-down"
-              className="group-hover:text-subtle text-muted h-4 w-4 shrink-0 transition rtl:mr-4"
-              aria-hidden="true"
-            />
+            {menuOpen ? (
+              <ChevronUpIcon className="group-hover:text-subtle text-muted h-4 w-4 shrink-0 transition rtl:mr-4" />
+            ) : (
+              <ChevronDownIcon className="group-hover:text-subtle text-muted h-4 w-4 shrink-0 transition rtl:mr-4" />
+            )}
           </span>
         </button>
       </DropdownMenuTrigger>
@@ -95,9 +94,7 @@ export function ProfileDropdown() {
                     <Avatar alt={option.label || ""} size="xsm" />
                     <span className="ml-2">{option.label}</span>
                   </span>
-                  {isSelected ? (
-                    <Icon name="check" className="ml-2 inline h-4 w-4" aria-hidden="true" />
-                  ) : null}
+                  {isSelected ? <CheckIcon className="ml-2 inline h-4 w-4" /> : null}
                 </DropdownItem>
               </DropdownMenuItem>
             );

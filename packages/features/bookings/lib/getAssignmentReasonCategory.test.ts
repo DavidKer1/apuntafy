@@ -5,14 +5,6 @@ import { AssignmentReasonEnum } from "@calcom/prisma/enums";
 import { getAssignmentReasonCategory } from "./getAssignmentReasonCategory";
 
 describe("getAssignmentReasonCategory", () => {
-  it("returns 'routed' for ROUTING_FORM_ROUTING", () => {
-    expect(getAssignmentReasonCategory(AssignmentReasonEnum.ROUTING_FORM_ROUTING)).toBe("routed");
-  });
-
-  it("returns 'routed' for ROUTING_FORM_ROUTING_FALLBACK", () => {
-    expect(getAssignmentReasonCategory(AssignmentReasonEnum.ROUTING_FORM_ROUTING_FALLBACK)).toBe("routed");
-  });
-
   it("returns 'reassigned' for REASSIGNED", () => {
     expect(getAssignmentReasonCategory(AssignmentReasonEnum.REASSIGNED)).toBe("reassigned");
   });
@@ -26,7 +18,9 @@ describe("getAssignmentReasonCategory", () => {
   });
 
   it("returns 'salesforce_assigned' for SALESFORCE_ASSIGNMENT", () => {
-    expect(getAssignmentReasonCategory(AssignmentReasonEnum.SALESFORCE_ASSIGNMENT)).toBe("salesforce_assigned");
+    expect(getAssignmentReasonCategory(AssignmentReasonEnum.SALESFORCE_ASSIGNMENT)).toBe(
+      "salesforce_assigned"
+    );
   });
 
   it("returns 'routed' for unknown enum values (default case)", () => {

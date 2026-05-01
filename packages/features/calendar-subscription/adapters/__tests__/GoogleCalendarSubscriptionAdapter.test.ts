@@ -33,7 +33,6 @@ const mockSelectedCalendar: SelectedCalendar = {
   externalId: "test@example.com",
   eventTypeId: null,
   delegationCredentialId: null,
-  domainWideDelegationCredentialId: null,
   googleChannelId: null,
   googleChannelKind: null,
   googleChannelResourceId: null,
@@ -96,7 +95,7 @@ describe("GoogleCalendarSubscriptionAdapter", () => {
     };
 
     const { CalendarAuth } = await import("../__mocks__/CalendarAuth");
-    vi.mocked(CalendarAuth).mockImplementation(function() {
+    vi.mocked(CalendarAuth).mockImplementation(function () {
       return {
         getClient: vi.fn().mockResolvedValue(mockClient),
       };

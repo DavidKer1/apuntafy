@@ -1,5 +1,4 @@
 import { bookingResponsesDbSchema } from "@calcom/features/bookings/lib/getBookingResponsesSchema";
-import { PermissionCheckService } from "@calcom/features/pbac/services/permission-check.service";
 import slugify from "@calcom/lib/slugify";
 import type { PrismaClient } from "@calcom/prisma";
 import prisma from "@calcom/prisma";
@@ -26,8 +25,7 @@ function getResponsesFromOldBooking(
 ) {
   const customInputs = rawBooking.customInputs || {};
   const responses = Object.keys(customInputs).reduce((acc, label) => {
-    acc[slugify(label) as keyof typeof acc] =
-      customInputs[label as keyof typeof customInputs];
+    acc[slugify(label) as keyof typeof acc] = customInputs[label as keyof typeof customInputs];
     return acc;
   }, {});
   return {
@@ -46,11 +44,7 @@ function getResponsesFromOldBooking(
   };
 }
 
-async function getBooking(
-  prisma: PrismaClient,
-  uid: string,
-  isSeatedEvent?: boolean
-) {
+async function getBooking(prisma: PrismaClient, uid: string, isSeatedEvent?: boolean) {
   const rawBooking = await prisma.booking.findUnique({
     where: {
       uid,
@@ -102,12 +96,8 @@ async function getBooking(
   if (booking) {
     // @NOTE: had to do this because Server side cant return [Object objects]
     // probably fixable with json.stringify -> json.parse
-    booking["startTime"] = (
-      booking?.startTime as Date
-    )?.toISOString() as unknown as Date;
-    booking["endTime"] = (
-      booking?.endTime as Date
-    )?.toISOString() as unknown as Date;
+    booking.startTime = (booking?.startTime as Date)?.toISOString() as unknown as Date;
+    booking.endTime = (booking?.endTime as Date)?.toISOString() as unknown as Date;
   }
 
   return booking;
@@ -120,16 +110,14 @@ export const getBookingWithResponses = <
     select: BookingSelect & {
       responses: true;
     };
-  }>
+  }>,
 >(
   booking: T,
   isSeatedEvent?: boolean
 ) => {
   return {
     ...booking,
-    responses: isSeatedEvent
-      ? booking.responses
-      : booking.responses || getResponsesFromOldBooking(booking),
+    responses: isSeatedEvent ? booking.responses : booking.responses || getResponsesFromOldBooking(booking),
   } as Omit<T, "responses"> & { responses: Record<string, any> };
 };
 
@@ -211,37 +199,14 @@ export const getBookingForReschedule = async (uid: string, userId?: number) => {
   // If we have the booking and not bookingSeat, we need to make sure the booking belongs to the userLoggedIn
   // Otherwise, we return null here.
   let hasOwnershipOnBooking = false;
-  if (
-    theBooking &&
-    theBooking?.eventType?.seatsPerTimeSlot &&
-    bookingSeatReferenceUid === null
-  ) {
+  if (theBooking?.eventType?.seatsPerTimeSlot && bookingSeatReferenceUid === null) {
     const isOwnerOfBooking = theBooking.userId === userId;
 
-    const isHostOfEventType = theBooking?.eventType?.hosts.some(
-      (host) => host.userId === userId
-    );
+    const isHostOfEventType = theBooking?.eventType?.hosts.some((host) => host.userId === userId);
 
     const isUserIdInBooking = theBooking.userId === userId;
 
-    let hasOrgAccess = false;
-    if (userId && theBooking.user?.organizationId) {
-      const permissionCheckService = new PermissionCheckService();
-      hasOrgAccess = await permissionCheckService.checkPermission({
-        userId,
-        teamId: theBooking.user.organizationId,
-        permission: "booking.readOrgBookings",
-        fallbackRoles: [MembershipRole.OWNER, MembershipRole.ADMIN],
-      });
-    }
-
-    if (
-      !isOwnerOfBooking &&
-      !isHostOfEventType &&
-      !isUserIdInBooking &&
-      !hasOrgAccess
-    )
-      return null;
+    if (!isOwnerOfBooking && !isHostOfEventType && !isUserIdInBooking) return null;
     hasOwnershipOnBooking = true;
   }
 
@@ -249,27 +214,21 @@ export const getBookingForReschedule = async (uid: string, userId?: number) => {
   // and we return null here.
   if (!theBooking && !rescheduleUid) return null;
 
-  const booking = await getBooking(
-    prisma,
-    rescheduleUid || uid,
-    bookingSeatReferenceUid ? true : false
-  );
+  const booking = await getBooking(prisma, rescheduleUid || uid, !!bookingSeatReferenceUid);
 
   if (!booking) return null;
 
   if (bookingSeatReferenceUid) {
-    booking["description"] = bookingSeatData?.description ?? null;
-    booking["responses"] = bookingResponsesDbSchema.parse(
-      bookingSeatData?.responses ?? {}
-    );
+    booking.description = bookingSeatData?.description ?? null;
+    booking.responses = bookingResponsesDbSchema.parse(bookingSeatData?.responses ?? {});
   }
   return {
     ...booking,
     attendees: rescheduleUid
       ? booking.attendees.filter((attendee) => attendee.email === attendeeEmail)
       : hasOwnershipOnBooking
-      ? []
-      : booking.attendees,
+        ? []
+        : booking.attendees,
   };
 };
 
@@ -349,7 +308,6 @@ export const getMultipleDurationValue = (
   defaultValue: number
 ) => {
   if (!multipleDurationConfig) return null;
-  if (multipleDurationConfig.includes(Number(queryDuration)))
-    return Number(queryDuration);
+  if (multipleDurationConfig.includes(Number(queryDuration))) return Number(queryDuration);
   return defaultValue;
 };

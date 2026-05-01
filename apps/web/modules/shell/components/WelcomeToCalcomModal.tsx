@@ -4,15 +4,14 @@ import { APP_NAME } from "@calcom/lib/constants";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { Button } from "@calcom/ui/components/button";
 import { Dialog, DialogContent } from "@calcom/ui/components/dialog";
-import { Icon } from "@calcom/ui/components/icon";
 import { Logo } from "@calcom/ui/components/logo";
+import { CheckIcon, UserIcon } from "@coss/ui/icons";
 
 import { useWelcomeToCalcomModal } from "../hooks/useWelcomeToCalcomModal";
 
 const features = [
   "unlimited_calendars",
   "unlimited_event_types",
-  "workflows_feature",
   "integrate_with_favorite_apps",
   "accept_payments_via_stripe",
   "html_react_embed",
@@ -73,11 +72,7 @@ export function WelcomeToCalcomModal() {
                   top: "50%",
                   transform: "translate(-50%, -50%)",
                 }}>
-                <Icon
-                  name="user"
-                  className="text-emphasis opacity-70"
-                  style={{ width: LARGE.icon, height: LARGE.icon }}
-                />
+                <UserIcon className="text-emphasis opacity-70" size={LARGE.icon} />
               </div>
             </div>
           </div>
@@ -92,7 +87,7 @@ export function WelcomeToCalcomModal() {
           <div className="mb-2 flex flex-col gap-3">
             {features.map((feature) => (
               <div key={feature} className="flex items-start gap-2">
-                <Icon name="check" className="text-muted mt-0.5 h-4 w-4 shrink-0" />
+                <CheckIcon className="text-muted mt-0.5 h-4 w-4 shrink-0" />
                 <span className="text-default text-sm font-medium leading-tight">{t(feature)}</span>
               </div>
             ))}
@@ -102,7 +97,7 @@ export function WelcomeToCalcomModal() {
         <div className="bg-muted border-subtle flex shrink-0 items-center justify-between rounded-b-2xl border-t px-8 py-6">
           <Button
             color="minimal"
-            href="https://cal.com/docs"
+            href="https://cal.diy"
             target="_blank"
             EndIcon="external-link"
             className="pointer-events-none opacity-0">

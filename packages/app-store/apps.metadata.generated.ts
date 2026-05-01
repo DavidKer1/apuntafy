@@ -13,6 +13,7 @@ import bolna_config_json from "./bolna/config.json";
 import btcpayserver_config_json from "./btcpayserver/config.json";
 import { metadata as caldavcalendar__metadata_ts } from "./caldavcalendar/_metadata";
 import campfire_config_json from "./campfire/config.json";
+import caretta_config_json from "./caretta/config.json";
 import chatbase_config_json from "./chatbase/config.json";
 import clic_config_json from "./clic/config.json";
 import closecom_config_json from "./closecom/config.json";
@@ -31,6 +32,7 @@ import { metadata as exchange2013calendar__metadata_ts } from "./exchange2013cal
 import { metadata as exchange2016calendar__metadata_ts } from "./exchange2016calendar/_metadata";
 import exchangecalendar_config_json from "./exchangecalendar/config.json";
 import facetime_config_json from "./facetime/config.json";
+import famulor_config_json from "./famulor/config.json";
 import fathom_config_json from "./fathom/config.json";
 import { metadata as feishucalendar__metadata_ts } from "./feishucalendar/_metadata";
 import fonio_ai_config_json from "./fonio-ai/config.json";
@@ -54,6 +56,7 @@ import { metadata as jitsivideo__metadata_ts } from "./jitsivideo/_metadata";
 import { metadata as larkcalendar__metadata_ts } from "./larkcalendar/_metadata";
 import lindy_config_json from "./lindy/config.json";
 import linear_config_json from "./linear/config.json";
+import lyra_config_json from "./lyra/config.json";
 import make_config_json from "./make/config.json";
 import matomo_config_json from "./matomo/config.json";
 import metapixel_config_json from "./metapixel/config.json";
@@ -76,7 +79,6 @@ import raycast_config_json from "./raycast/config.json";
 import retell_ai_config_json from "./retell-ai/config.json";
 import riverside_config_json from "./riverside/config.json";
 import roam_config_json from "./roam/config.json";
-import routing_forms_config_json from "./routing-forms/config.json";
 import salesforce_config_json from "./salesforce/config.json";
 import salesroom_config_json from "./salesroom/config.json";
 import sendgrid_config_json from "./sendgrid/config.json";
@@ -123,6 +125,7 @@ export const appStoreMetadata = {
   btcpayserver: btcpayserver_config_json,
   caldavcalendar: caldavcalendar__metadata_ts,
   campfire: campfire_config_json,
+  caretta: caretta_config_json,
   chatbase: chatbase_config_json,
   clic: clic_config_json,
   closecom: closecom_config_json,
@@ -141,6 +144,7 @@ export const appStoreMetadata = {
   exchange2016calendar: exchange2016calendar__metadata_ts,
   exchangecalendar: exchangecalendar_config_json,
   facetime: facetime_config_json,
+  famulor: famulor_config_json,
   fathom: fathom_config_json,
   feishucalendar: feishucalendar__metadata_ts,
   "fonio-ai": fonio_ai_config_json,
@@ -164,6 +168,7 @@ export const appStoreMetadata = {
   larkcalendar: larkcalendar__metadata_ts,
   lindy: lindy_config_json,
   linear: linear_config_json,
+  lyra: lyra_config_json,
   make: make_config_json,
   matomo: matomo_config_json,
   metapixel: metapixel_config_json,
@@ -186,7 +191,6 @@ export const appStoreMetadata = {
   "retell-ai": retell_ai_config_json,
   riverside: riverside_config_json,
   roam: roam_config_json,
-  "routing-forms": routing_forms_config_json,
   salesforce: salesforce_config_json,
   salesroom: salesroom_config_json,
   sendgrid: sendgrid_config_json,

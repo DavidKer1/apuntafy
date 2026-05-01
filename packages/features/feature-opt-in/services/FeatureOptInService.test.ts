@@ -6,50 +6,51 @@ import { ErrorWithCode } from "@calcom/lib/errors";
 import type { TeamFeatures, UserFeatures } from "@calcom/prisma/client";
 import type { Mock } from "vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { IFeatureOptInServiceDeps } from "./FeatureOptInService";
 import { FeatureOptInService } from "./FeatureOptInService";
 
 const mockIsFeatureAllowedForScope: Mock = vi.fn();
 const mockFindAllByUserId: Mock = vi.fn();
+const mockMembershipFindUnique: Mock = vi.fn();
+const mockMembershipFindMany: Mock = vi.fn();
 
 // Mock the OPT_IN_FEATURES config
 vi.mock("../config", () => {
-    const mockFeatures = [
-      {
-        slug: "test-feature-1",
-        i18n: { title: "test_feature_1_title", name: "test_feature_1", description: "test_feature_1_desc" },
-        policy: "permissive",
-      },
-      {
-        slug: "test-feature-2",
-        i18n: { title: "test_feature_2_title", name: "test_feature_2", description: "test_feature_2_desc" },
-        policy: "permissive",
-      },
-      {
-        slug: "org-only-feature",
-        i18n: { title: "org_only_title", name: "org_only", description: "org_only_desc" },
-        policy: "permissive",
-        scope: ["org"],
-      },
-      {
-        slug: "team-only-feature",
-        i18n: { title: "team_only_title", name: "team_only", description: "team_only_desc" },
-        policy: "permissive",
-        scope: ["team"],
-      },
-      {
-        slug: "user-only-feature",
-        i18n: { title: "user_only_title", name: "user_only", description: "user_only_desc" },
-        policy: "permissive",
-        scope: ["user"],
-      },
-      {
-        slug: "strict-feature",
-        i18n: { title: "strict_feature_title", name: "strict_feature", description: "strict_feature_desc" },
-        policy: "strict",
-      },
-    ];
+  const mockFeatures = [
+    {
+      slug: "test-feature-1",
+      i18n: { title: "test_feature_1_title", name: "test_feature_1", description: "test_feature_1_desc" },
+      policy: "permissive",
+    },
+    {
+      slug: "test-feature-2",
+      i18n: { title: "test_feature_2_title", name: "test_feature_2", description: "test_feature_2_desc" },
+      policy: "permissive",
+    },
+    {
+      slug: "org-only-feature",
+      i18n: { title: "org_only_title", name: "org_only", description: "org_only_desc" },
+      policy: "permissive",
+      scope: ["org"],
+    },
+    {
+      slug: "team-only-feature",
+      i18n: { title: "team_only_title", name: "team_only", description: "team_only_desc" },
+      policy: "permissive",
+      scope: ["team"],
+    },
+    {
+      slug: "user-only-feature",
+      i18n: { title: "user_only_title", name: "user_only", description: "user_only_desc" },
+      policy: "permissive",
+      scope: ["user"],
+    },
+    {
+      slug: "strict-feature",
+      i18n: { title: "strict_feature_title", name: "strict_feature", description: "strict_feature_desc" },
+      policy: "strict",
+    },
+  ];
   return {
     OPT_IN_FEATURES: mockFeatures,
     isOptInFeature: (slug: string) => mockFeatures.some((feature) => feature.slug === slug),
@@ -80,19 +81,16 @@ vi.mock("@calcom/features/pbac/services/permission-check.service", () => ({
   },
 }));
 
-// Mock TeamRepository - needs to be a class that can be instantiated
 let mockFindOwnedTeamsByUserId: Mock = vi.fn();
-vi.mock("@calcom/features/ee/teams/repositories/TeamRepository", () => ({
-  TeamRepository: class {
-    findOwnedTeamsByUserId(...args: unknown[]): unknown {
-      return mockFindOwnedTeamsByUserId(...args);
-    }
-  },
-}));
 
 // Mock prisma
 vi.mock("@calcom/prisma", () => ({
-  prisma: {},
+  prisma: {
+    membership: {
+      findUnique: (...args: unknown[]) => mockMembershipFindUnique(...args),
+      findMany: (...args: unknown[]) => mockMembershipFindMany(...args),
+    },
+  },
 }));
 
 // Helper to create mock TeamFeatures
@@ -539,6 +537,8 @@ describe("FeatureOptInService", () => {
       mockFindAllByUserId.mockReset();
       mockCheckPermission = vi.fn();
       mockFindOwnedTeamsByUserId = vi.fn();
+      mockMembershipFindUnique.mockResolvedValue(null);
+      mockMembershipFindMany.mockResolvedValue([]);
 
       mockFeatureRepo = {
         findAll: vi.fn(),
@@ -680,6 +680,7 @@ describe("FeatureOptInService", () => {
       mockFeatureRepo.findAll.mockResolvedValue([{ slug: "test-feature-1", enabled: true }]);
       mockTeamFeatureRepo.findByTeamIdsAndFeatureIds.mockResolvedValue({});
       mockFindOwnedTeamsByUserId.mockResolvedValue([{ id: 1, name: "Team 1", isOrganization: false }]);
+      mockMembershipFindMany.mockResolvedValue([{ team: { id: 1, name: "Team 1", isOrganization: false } }]);
 
       const result = await service.checkFeatureOptInEligibility({
         userId: 1,
@@ -695,7 +696,6 @@ describe("FeatureOptInService", () => {
   describe("checkFeatureOptInEligibility - simulation logic", () => {
     let mockMembershipRepository: { findAllByUserId: ReturnType<typeof vi.fn> };
     let mockPermissionCheckService: { checkPermission: ReturnType<typeof vi.fn> };
-    let mockTeamRepository: { findOwnedTeamsByUserId: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       mockMembershipRepository = {
@@ -703,9 +703,6 @@ describe("FeatureOptInService", () => {
       };
       mockPermissionCheckService = {
         checkPermission: vi.fn(),
-      };
-      mockTeamRepository = {
-        findOwnedTeamsByUserId: vi.fn(),
       };
 
       vi.doMock("@calcom/features/membership/repositories/MembershipRepository", () => ({
@@ -717,9 +714,6 @@ describe("FeatureOptInService", () => {
       }));
       vi.doMock("@calcom/features/pbac/services/permission-check.service", () => ({
         PermissionCheckService: vi.fn(() => mockPermissionCheckService),
-      }));
-      vi.doMock("@calcom/features/ee/teams/repositories/TeamRepository", () => ({
-        TeamRepository: vi.fn(() => mockTeamRepository),
       }));
     });
 

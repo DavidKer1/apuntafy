@@ -3,12 +3,11 @@ import { MembershipRole } from "@calcom/platform-libraries";
 import { SkipTakePagination } from "@calcom/platform-types";
 import type { Webhook } from "@calcom/prisma/client";
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiHeader, ApiOperation, ApiTags as DocsTags } from "@nestjs/swagger";
+import { ApiHeader, ApiOperation, ApiParam, ApiTags as DocsTags } from "@nestjs/swagger";
 import { plainToClass } from "class-transformer";
 import { API_VERSIONS_VALUES } from "@/lib/api-versions";
 import { MembershipRoles } from "@/modules/auth/decorators/roles/membership-roles.decorator";
 import { ApiAuthGuard } from "@/modules/auth/guards/api-auth/api-auth.guard";
-import { OrganizationRolesGuard } from "@/modules/auth/guards/organization-roles/organization-roles.guard";
 import { GetWebhook } from "@/modules/webhooks/decorators/get-webhook-decorator";
 import { IsOAuthClientWebhookGuard } from "@/modules/webhooks/guards/is-oauth-client-webhook-guard";
 import { CreateWebhookInputDto, UpdateWebhookInputDto } from "@/modules/webhooks/inputs/webhook.input";
@@ -29,13 +28,14 @@ import { OAuthClientGuard } from "../../guards/oauth-client-guard";
   path: "/v2/oauth-clients/:clientId/webhooks",
   version: API_VERSIONS_VALUES,
 })
-@UseGuards(ApiAuthGuard, OrganizationRolesGuard, OAuthClientGuard)
+@UseGuards(ApiAuthGuard, OAuthClientGuard)
 @DocsTags("Deprecated: Platform / Webhooks")
 @ApiHeader({
   name: X_CAL_SECRET_KEY,
   description: "OAuth client secret key",
   required: true,
 })
+@ApiParam({ name: "clientId", type: String, required: true })
 export class OAuthClientWebhooksController {
   constructor(
     private readonly webhooksService: WebhooksService,
@@ -94,6 +94,7 @@ export class OAuthClientWebhooksController {
     summary: "Get a webhook",
     description: `<Warning>These endpoints are deprecated and will be removed in the future.</Warning>`,
   })
+  @ApiParam({ name: "webhookId", type: String, required: true })
   @UseGuards(IsOAuthClientWebhookGuard)
   async getOAuthClientWebhook(@GetWebhook() webhook: Webhook): Promise<OAuthClientWebhookOutputResponseDto> {
     return {
@@ -135,6 +136,7 @@ export class OAuthClientWebhooksController {
     summary: "Delete a webhook",
     description: `<Warning>These endpoints are deprecated and will be removed in the future.</Warning>`,
   })
+  @ApiParam({ name: "webhookId", type: String, required: true })
   @UseGuards(IsOAuthClientWebhookGuard)
   async deleteOAuthClientWebhook(
     @GetWebhook() webhook: Webhook

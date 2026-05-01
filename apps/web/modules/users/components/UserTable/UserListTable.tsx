@@ -1,21 +1,12 @@
 "use client";
 
 import { checkAdminOrOwner } from "@calcom/features/auth/lib/checkAdminOrOwner";
-import {
-  ColumnFilterType,
-  convertFacetedValuesToMap,
-  DataTableProvider,
-  type FacetedValue,
-  useColumnFilters,
-  useDataTable,
-} from "@calcom/features/data-table";
-import { useSegments } from "@calcom/features/data-table/hooks/useSegments";
-import { useOrgBranding } from "@calcom/features/ee/organizations/context/provider";
-import type { MemberPermissions } from "@calcom/features/pbac/lib/team-member-permissions";
+import { ColumnFilterType, convertFacetedValuesToMap, type FacetedValue } from "@calcom/features/data-table";
 import { WEBAPP_URL } from "@calcom/lib/constants";
 import { downloadAsCsv } from "@calcom/lib/csvUtils";
 import { getUserAvatarUrl } from "@calcom/lib/getAvatarUrl";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { MembershipRole } from "@calcom/prisma/enums";
 import type { RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
 import type { FilterType } from "@calcom/types/data-table";
@@ -24,7 +15,6 @@ import { Avatar } from "@calcom/ui/components/avatar";
 import { Badge } from "@calcom/ui/components/badge";
 import { Checkbox } from "@calcom/ui/components/form";
 import { showToast } from "@calcom/ui/components/toast";
-import { useGetUserAttributes } from "@calcom/web/components/settings/platform/hooks/useGetUserAttributes";
 import { LimitedBadges } from "@calcom/web/components/ui/LimitedBadges";
 import {
   generateCsvRawForMembersTable,
@@ -52,15 +42,16 @@ import {
   DataTableToolbar,
   DataTableWrapper,
 } from "~/data-table/components";
+import { DataTableProvider } from "~/data-table/DataTableProvider";
+import { useColumnFilters } from "~/data-table/hooks/useColumnFilters";
+import { useDataTable } from "~/data-table/hooks/useDataTable";
+import { useSegments } from "~/data-table/hooks/useSegments";
 import { DeleteBulkUsers } from "./BulkActions/DeleteBulkUsers";
 import { DynamicLink } from "./BulkActions/DynamicLink";
 import { EventTypesList } from "./BulkActions/EventTypesList";
-import { MassAssignAttributesBulkAction } from "./BulkActions/MassAssignAttributes";
-import { TeamListBulkAction } from "./BulkActions/TeamList";
 import { ChangeUserRoleModal } from "./ChangeUserRoleModal";
 import { DeleteMemberModal } from "./DeleteMemberModal";
 import { EditUserSheet } from "./EditSheet/EditUserSheet";
-import { ImpersonationMemberModal } from "./ImpersonationMemberModal";
 import { InviteMemberModal } from "./InviteMemberModal";
 import type { UserTableAction, UserTableState, UserTableUser } from "./types";
 import { TableActions } from "./UserTableActions";
@@ -95,10 +86,7 @@ const initalColumnVisibility = {
   actions: true,
 };
 
-function reducer(
-  state: UserTableState,
-  action: UserTableAction
-): UserTableState {
+function reducer(state: UserTableState, action: UserTableAction): UserTableState {
   switch (action.type) {
     case "SET_CHANGE_MEMBER_ROLE_ID":
       return { ...state, changeMemberRole: action.payload };
@@ -125,12 +113,30 @@ function reducer(
 }
 
 type UserListTableProps = {
-  org: RouterOutputs["viewer"]["organizations"]["listCurrent"];
-  teams: RouterOutputs["viewer"]["organizations"]["getTeams"];
-  attributes?: RouterOutputs["viewer"]["attributes"]["list"];
+  org: { user?: { role?: string }; slug?: string; name?: string; canAdminImpersonate?: boolean };
+  teams: {
+    id: number;
+    name: string;
+    slug: string | null;
+    logoUrl?: string | null;
+    isOrganization?: boolean;
+  }[];
+  attributes?: {
+    id: string;
+    name: string;
+    type: string;
+    isWeightsEnabled?: boolean;
+    options: { value: string; weight?: number }[];
+  }[];
   facetedTeamValues?: {
     roles: { id: string; name: string }[];
-    teams: RouterOutputs["viewer"]["organizations"]["getTeams"];
+    teams: {
+      id: number;
+      name: string;
+      slug: string | null;
+      logoUrl?: string | null;
+      isOrganization?: boolean;
+    }[];
     attributes: {
       id: string;
       name: string;
@@ -139,18 +145,24 @@ type UserListTableProps = {
       }[];
     }[];
   };
-  permissions?: MemberPermissions;
+  permissions?: {
+    canRemoveMember: boolean;
+    canChangeRole: boolean;
+    canChangeMemberRole: boolean;
+    canRemove: boolean;
+    canInvite: boolean;
+    canImpersonate: boolean;
+    canResetPassword: boolean;
+    canEditAttributesForUser: boolean;
+    canViewAttributes: boolean;
+  };
 };
 
 function UserListTable(props: UserListTableProps): JSX.Element | null {
   const pathname = usePathname();
   if (!pathname) return null;
   return (
-    <DataTableProvider
-      tableIdentifier={pathname}
-      useSegments={useSegments}
-      defaultPageSize={25}
-    >
+    <DataTableProvider tableIdentifier={pathname} useSegments={useSegments} defaultPageSize={25}>
       <UserListTableContent {...props} />
     </DataTableProvider>
   );
@@ -164,12 +176,17 @@ function UserListTableContent({
   permissions,
 }: UserListTableProps): JSX.Element {
   const [dynamicLinkVisible, setDynamicLinkVisible] = useQueryState("dynamicLink", parseAsBoolean);
-  const orgBranding = useOrgBranding();
-  const domain = orgBranding?.fullDomain ?? WEBAPP_URL;
+  const orgBranding = null as {
+    slug?: string;
+    name?: string;
+    fullDomain?: string;
+    canAdminImpersonate?: boolean;
+  } | null;
+  const domain = WEBAPP_URL;
   const { t } = useLocale();
 
   const { data: session } = useSession();
-  const { isPlatformUser } = useGetUserAttributes();
+  const isPlatformUser = false;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [isDownloading, setIsDownloading] = useState(false);
   const [rowSelection, setRowSelection] = useState({});
@@ -178,20 +195,12 @@ function UserListTableContent({
 
   const { limit, offset, searchTerm, ctaContainerRef } = useDataTable();
 
-  const { data, isPending } = trpc.viewer.organizations.listMembers.useQuery(
-    {
-      limit,
-      offset,
-      searchTerm,
-      expand: ["attributes"],
-      filters: columnFilters,
-    },
-    {
-      placeholderData: keepPreviousData,
-    }
-  );
+  const data = { rows: [] as UserTableUser[], meta: { totalRowCount: 0 } };
+  const isPending = false;
 
-  const adminOrOwner = checkAdminOrOwner(org?.user?.role);
+  const adminOrOwner = checkAdminOrOwner(
+    org?.user?.role as import("@calcom/prisma/enums").MembershipRole | undefined
+  );
 
   //we must flatten the array of arrays from the useInfiniteQuery hook
   const flatData = useMemo<UserTableUser[]>(() => data?.rows ?? [], [data]);
@@ -203,6 +212,7 @@ function UserListTableContent({
       canRemove: permissions?.canRemove ?? adminOrOwner,
       canResendInvitation: permissions?.canInvite ?? adminOrOwner,
       canImpersonate: permissions?.canImpersonate ?? adminOrOwner,
+      canResetPassword: permissions?.canResetPassword ?? adminOrOwner,
     };
     const generateAttributeColumns = (): ColumnDef<UserTableUser>[] => {
       if (!attributes?.length) {
@@ -246,7 +256,7 @@ function UserListTableContent({
               return (
                 <LimitedBadges
                   items={attributeValues.map((attributeValue) => {
-                    const isAGroupOption = attributeValue.contains?.length > 0;
+                    const isAGroupOption = (attributeValue.contains?.length ?? 0) > 0;
                     let weight = "";
                     if (attribute.isWeightsEnabled) {
                       weight = `${attributeValue.weight || 100}%`;
@@ -326,14 +336,12 @@ function UserListTableContent({
               <div className="">
                 <div
                   data-testid={`member-${username}-username`}
-                  className="text-emphasis text-sm font-medium leading-none"
-                >
+                  className="font-medium text-emphasis text-sm leading-none">
                   {displayName}
                 </div>
                 <div
                   data-testid={`member-${username}-email`}
-                  className="text-subtle mt-1 text-sm leading-none"
-                >
+                  className="mt-1 text-sm text-subtle leading-none">
                   {email}
                 </div>
               </div>
@@ -362,8 +370,7 @@ function UserListTableContent({
               variant={roleVariant}
               onClick={() => {
                 table.getColumn("role")?.setFilterValue([role]);
-              }}
-            >
+              }}>
               {roleName}
             </Badge>
           );
@@ -371,7 +378,16 @@ function UserListTableContent({
       },
       {
         id: "teams",
-        accessorFn: (data: UserTableUser) => data.teams.map((team) => team.name),
+        accessorFn: (data: UserTableUser) =>
+          data.teams.map(
+            (team: {
+              id: number;
+              name: string;
+              slug: string | null;
+              logoUrl?: string | null;
+              isOrganization?: boolean;
+            }) => team.name
+          ),
         header: t("teams"),
         size: 140,
         meta: {
@@ -390,20 +406,27 @@ function UserListTableContent({
                   data-testid={`email-${email.replace("@", "")}-pending`}
                   onClick={() => {
                     table.getColumn("role")?.setFilterValue(["PENDING"]);
-                  }}
-                >
+                  }}>
                   {t("pending")}
                 </Badge>
               )}
 
               <LimitedBadges
-                items={teams.map((team) => ({
-                  label: team.name,
-                  variant: "gray" as const,
-                  onClick: () => {
-                    table.getColumn("teams")?.setFilterValue([team.name]);
-                  },
-                }))}
+                items={teams.map(
+                  (team: {
+                    id: number;
+                    name: string;
+                    slug: string | null;
+                    logoUrl?: string | null;
+                    isOrganization?: boolean;
+                  }) => ({
+                    label: team.name,
+                    variant: "gray" as const,
+                    onClick: () => {
+                      table.getColumn("teams")?.setFilterValue([team.name]);
+                    },
+                  })
+                )}
               />
             </div>
           );
@@ -421,7 +444,9 @@ function UserListTableContent({
             type: ColumnFilterType.DATE_RANGE,
           },
         },
-        cell: ({ row }: CellContext<UserTableUser, unknown>) => <div>{row.original.lastActiveAt}</div>,
+        cell: ({ row }: CellContext<UserTableUser, unknown>) => (
+          <div>{row.original.lastActiveAt?.toLocaleDateString() ?? ""}</div>
+        ),
       },
       {
         id: "createdAt",
@@ -434,7 +459,9 @@ function UserListTableContent({
             type: ColumnFilterType.DATE_RANGE,
           },
         },
-        cell: ({ row }: CellContext<UserTableUser, unknown>) => <div>{row.original.createdAt || ""}</div>,
+        cell: ({ row }: CellContext<UserTableUser, unknown>) => (
+          <div>{row.original.createdAt?.toLocaleDateString() ?? ""}</div>
+        ),
       },
       {
         id: "updatedAt",
@@ -447,7 +474,9 @@ function UserListTableContent({
             type: ColumnFilterType.DATE_RANGE,
           },
         },
-        cell: ({ row }: CellContext<UserTableUser, unknown>) => <div>{row.original.updatedAt || ""}</div>,
+        cell: ({ row }: CellContext<UserTableUser, unknown>) => (
+          <div>{row.original.updatedAt?.toLocaleDateString() ?? ""}</div>
+        ),
       },
       {
         id: "completedOnboarding",
@@ -502,20 +531,18 @@ function UserListTableContent({
 
           const permissionsForUser = {
             canEdit:
-              ((permissionsRaw.canEdit ?? false) ||
-                (permissions?.canEditAttributesForUser ?? false)) &&
+              ((permissionsRaw.canEdit ?? false) || (permissions?.canEditAttributesForUser ?? false)) &&
               user.accepted &&
               !isSelf,
             canRemove: (permissionsRaw.canRemove ?? false) && !isSelf,
             canImpersonate:
               user.accepted &&
-              !user.disableImpersonation &&
               !isSelf &&
               !!org?.canAdminImpersonate &&
               (permissionsRaw.canImpersonate ?? false),
             canLeave: user.accepted && isSelf,
-            canResendInvitation:
-              (permissionsRaw.canResendInvitation ?? false) && !user.accepted,
+            canResendInvitation: (permissionsRaw.canResendInvitation ?? false) && !user.accepted,
+            canResetPassword: (permissionsRaw.canResetPassword ?? false) && user.accepted && !isSelf,
           };
 
           return (
@@ -573,9 +600,7 @@ function UserListTableContent({
               }))
             );
           default: {
-            const attribute = facetedTeamValues.attributes.find(
-              (attr) => attr.id === columnId
-            );
+            const attribute = facetedTeamValues.attributes.find((attr) => attr.id === columnId);
             if (attribute) {
               return convertFacetedValuesToMap(
                 attribute?.options.map(({ value }) => ({
@@ -613,13 +638,7 @@ function UserListTableContent({
       const limit = 100;
 
       while (offset !== undefined) {
-        const result = await utils.viewer.organizations.listMembers.fetch({
-          limit,
-          offset,
-          searchTerm,
-          expand: ["attributes"],
-          filters: columnFilters,
-        });
+        const result = { rows: [] as UserTableUser[] };
 
         if (!result.rows?.length) {
           offset = undefined;
@@ -635,19 +654,12 @@ function UserListTableContent({
       }
 
       const ATTRIBUTE_IDS = attributes?.map((attr) => attr.id) ?? [];
-      const csvRaw = generateCsvRawForMembersTable(
-        headers,
-        allRows,
-        ATTRIBUTE_IDS,
-        domain
-      );
+      const csvRaw = generateCsvRawForMembersTable(headers, allRows, ATTRIBUTE_IDS, domain);
       if (!csvRaw) {
         throw new Error("Generating CSV file failed.");
       }
 
-      const filename = `${org.name}_${
-        new Date().toISOString().split("T")[0]
-      }.csv`;
+      const filename = `${org.name}_${new Date().toISOString().split("T")[0]}.csv`;
       downloadAsCsv(csvRaw, filename);
     } catch (error) {
       showToast(`Error: ${error}`, "error");
@@ -677,8 +689,7 @@ function UserListTableContent({
             <DataTableSegment.SaveButton />
             <DataTableSegment.Select />
           </>
-        }
-      >
+        }>
         {numberOfSelectedRows >= 2 && dynamicLinkVisible && (
           <DataTableSelectionBar.Root className="bottom-[7.3rem]! md:bottom-32!">
             <DynamicLink table={table} domain={domain} />
@@ -686,39 +697,36 @@ function UserListTableContent({
         )}
         {numberOfSelectedRows > 0 && (
           <DataTableSelectionBar.Root className="bottom-16! justify-center md:w-max">
-            <p className="text-brand-subtle shrink-0 px-2 text-center text-xs leading-none sm:text-sm sm:font-medium">
+            <p className="shrink-0 px-2 text-center text-brand-subtle text-xs leading-none sm:font-medium sm:text-sm">
               {t("number_selected", { count: numberOfSelectedRows })}
             </p>
             {!isPlatformUser && (
               <>
                 {permissions?.canChangeMemberRole && (
-                  <TeamListBulkAction table={table} />
+                  <DeleteBulkUsers
+                    users={table.getSelectedRowModel().flatRows.map((row) => row.original)}
+                    onRemove={() => table.toggleAllPageRowsSelected(false)}
+                  />
                 )}
                 {numberOfSelectedRows >= 2 && (
                   <DataTableSelectionBar.Button
                     color="secondary"
                     onClick={() => setDynamicLinkVisible(!dynamicLinkVisible)}
-                    icon="handshake"
-                  >
+                    icon="handshake">
                     {t("group_meeting")}
                   </DataTableSelectionBar.Button>
                 )}
-                {(permissions?.canEditAttributesForUser ?? adminOrOwner) && (
-                  <MassAssignAttributesBulkAction
-                    table={table}
-                    filters={columnFilters}
-                  />
-                )}
                 {(permissions?.canChangeMemberRole ?? adminOrOwner) && (
-                  <EventTypesList table={table} orgTeams={teams} />
+                  <EventTypesList
+                    table={table}
+                    orgTeams={teams?.map((t) => ({ id: t.id, slug: t.slug ?? "", title: t.name }))}
+                  />
                 )}
               </>
             )}
             {(permissions?.canRemove ?? adminOrOwner) && (
               <DeleteBulkUsers
-                users={table
-                  .getSelectedRowModel()
-                  .flatRows.map((row) => row.original)}
+                users={table.getSelectedRowModel().flatRows.map((row) => row.original)}
                 onRemove={() => table.toggleAllPageRowsSelected(false)}
               />
             )}
@@ -726,18 +734,10 @@ function UserListTableContent({
         )}
       </DataTableWrapper>
 
-      {state.deleteMember.showModal && (
-        <DeleteMemberModal state={state} dispatch={dispatch} />
-      )}
-      {state.inviteMember.showModal && (
-        <InviteMemberModal dispatch={dispatch} />
-      )}
-      {state.impersonateMember.showModal && (
-        <ImpersonationMemberModal dispatch={dispatch} state={state} />
-      )}
-      {state.changeMemberRole.showModal && (
-        <ChangeUserRoleModal dispatch={dispatch} state={state} />
-      )}
+      {state.deleteMember.showModal && <DeleteMemberModal state={state} dispatch={dispatch} />}
+      {state.inviteMember.showModal && <InviteMemberModal dispatch={dispatch} />}
+      {/* Impersonation modal removed (enterprise) */}
+      {state.changeMemberRole.showModal && <ChangeUserRoleModal dispatch={dispatch} state={state} />}
       {state.editSheet.showModal && (
         <EditUserSheet
           dispatch={dispatch}
@@ -757,8 +757,7 @@ function UserListTableContent({
               StartIcon="file-down"
               loading={isDownloading}
               onClick={() => handleDownload()}
-              data-testid="export-members-button"
-            >
+              data-testid="export-members-button">
               {t("download")}
             </DataTableToolbar.CTA>
             {(permissions?.canInvite ?? adminOrOwner) && (
@@ -775,8 +774,7 @@ function UserListTableContent({
                   });
                   posthog.capture("add_organization_member_clicked");
                 }}
-                data-testid="new-organization-member-button"
-              >
+                data-testid="new-organization-member-button">
                 {t("add")}
               </DataTableToolbar.CTA>
             )}

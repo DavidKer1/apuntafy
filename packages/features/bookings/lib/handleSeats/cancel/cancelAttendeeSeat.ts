@@ -1,9 +1,10 @@
 import { getCalendar } from "@calcom/app-store/_utils/getCalendar";
-import { getAllDelegationCredentialsForUserIncludeServiceAccountKey } from "@calcom/app-store/delegationCredential";
-import { getDelegationCredentialOrFindRegularCredential } from "@calcom/app-store/delegationCredential";
+import {
+  getAllDelegationCredentialsForUserIncludeServiceAccountKey,
+  getDelegationCredentialOrFindRegularCredential,
+} from "@calcom/app-store/delegationCredential";
 import { sendCancelledSeatEmailsAndSMS } from "@calcom/emails/email-manager";
 import { updateMeeting } from "@calcom/features/conferencing/lib/videoClient";
-import { WorkflowRepository } from "@calcom/features/ee/workflows/repositories/WorkflowRepository";
 import type { WebhookVersion } from "@calcom/features/webhooks/lib/interface/IWebhookRepository";
 import sendPayload from "@calcom/features/webhooks/lib/sendOrSchedulePayload";
 import type { EventPayloadType, EventTypeInfo } from "@calcom/features/webhooks/lib/sendPayload";
@@ -11,13 +12,12 @@ import { getRichDescription } from "@calcom/lib/CalEventParser";
 import { HttpError } from "@calcom/lib/http-error";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
-import { getTranslation } from "@calcom/lib/server/i18n";
+import { getTranslation } from "@calcom/i18n/server";
 import prisma from "@calcom/prisma";
 import { WebhookTriggerEvents } from "@calcom/prisma/enums";
-import { bookingCancelAttendeeSeatSchema } from "@calcom/prisma/zod-utils";
 import type { EventTypeMetadata } from "@calcom/prisma/zod-utils";
+import { bookingCancelAttendeeSeatSchema } from "@calcom/prisma/zod-utils";
 import type { CalendarEvent } from "@calcom/types/Calendar";
-
 import type { BookingToDelete } from "../../handleCancelBooking";
 
 async function cancelAttendeeSeat(
@@ -182,12 +182,6 @@ async function cancelAttendeeSeat(
     })
   );
   await Promise.all(promises);
-
-  const workflowRemindersForAttendee =
-    bookingToDelete?.workflowReminders.filter((reminder) => reminder.seatReferenceId === seatReferenceUid) ??
-    null;
-
-  await WorkflowRepository.deleteAllWorkflowReminders(workflowRemindersForAttendee);
 
   return { success: true };
 }

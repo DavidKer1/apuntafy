@@ -1,39 +1,37 @@
-import { format } from "date-fns";
-import type { Dayjs } from "dayjs";
-import { useState, useEffect, useCallback } from "react";
-
 import dayjs from "@calcom/dayjs";
+import {
+  CUSTOM_PRESET,
+  CUSTOM_PRESET_VALUE,
+  DEFAULT_PRESET,
+  getCompatiblePresets,
+  getDateRangeFromPreset,
+  getDefaultEndDate,
+  getDefaultStartDate,
+  type PresetOption,
+} from "@calcom/features/data-table/lib/dateRange";
+import { preserveLocalTime } from "@calcom/features/data-table/lib/preserveLocalTime";
+import type { DateRangeFilterOptions, FilterableColumn } from "@calcom/features/data-table/lib/types";
+import { ColumnFilterType, ZDateRangeFilterValue } from "@calcom/features/data-table/lib/types";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { CURRENT_TIMEZONE } from "@calcom/lib/timezoneConstants";
+import type { FilterType } from "@calcom/types/data-table";
 import classNames from "@calcom/ui/classNames";
 import { Badge } from "@calcom/ui/components/badge";
 import { Button, buttonClasses } from "@calcom/ui/components/button";
 import {
   Command,
-  CommandList,
-  CommandItem,
   CommandGroup,
+  CommandItem,
+  CommandList,
   CommandSeparator,
 } from "@calcom/ui/components/command";
 import { DateRangePicker } from "@calcom/ui/components/form";
-import { Icon } from "@calcom/ui/components/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@calcom/ui/components/popover";
-
-import { useDataTable, useFilterValue } from "@calcom/features/data-table/hooks";
-import {
-  CUSTOM_PRESET,
-  CUSTOM_PRESET_VALUE,
-  DEFAULT_PRESET,
-  getDefaultStartDate,
-  getDefaultEndDate,
-  getDateRangeFromPreset,
-  getCompatiblePresets,
-  type PresetOption,
-} from "@calcom/features/data-table/lib/dateRange";
-import { preserveLocalTime } from "@calcom/features/data-table/lib/preserveLocalTime";
-import type { FilterableColumn, DateRangeFilterOptions } from "@calcom/features/data-table/lib/types";
-import { ZDateRangeFilterValue, ColumnFilterType } from "@calcom/features/data-table/lib/types";
-import type { FilterType } from "@calcom/types/data-table";
+import { CheckIcon } from "@coss/ui/icons";
+import { format } from "date-fns";
+import type { Dayjs } from "dayjs";
+import { useCallback, useEffect, useState } from "react";
+import { useDataTable, useFilterValue } from "~/data-table/hooks";
 import { useFilterPopoverOpen } from "./useFilterPopoverOpen";
 
 type DateRangeFilterProps = {
@@ -70,8 +68,8 @@ export const DateRangeFilter = ({
     forceCustomOnly
       ? CUSTOM_PRESET
       : filterValue?.data.preset
-      ? compatiblePresets.find((o) => o.value === filterValue.data.preset) ?? DEFAULT_PRESET
-      : DEFAULT_PRESET
+        ? (compatiblePresets.find((o) => o.value === filterValue.data.preset) ?? DEFAULT_PRESET)
+        : DEFAULT_PRESET
   );
 
   const convertTimestamp = useCallback(
@@ -201,8 +199,8 @@ export const DateRangeFilter = ({
                 range === "past"
                   ? currentDate.subtract(2, "year").toDate()
                   : range === "future"
-                  ? currentDate.toDate()
-                  : null
+                    ? currentDate.toDate()
+                    : null
               }
               maxDate={range === "past" ? currentDate.toDate() : undefined}
               disabled={false}
@@ -236,7 +234,7 @@ export const DateRangeFilter = ({
                     updateDateRangeFromPreset(option.value);
                   }}>
                   <span className="capitalize">{t(option.labelKey, option.i18nOptions)}</span>
-                  {selectedPreset.value === option.value && <Icon name="check" />}
+                  {selectedPreset.value === option.value && <CheckIcon />}
                 </CommandItem>
               ))}
             </CommandList>

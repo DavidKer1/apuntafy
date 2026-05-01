@@ -1,7 +1,6 @@
-import type { Table } from "@tanstack/react-table";
-
 import { sanitizeValue } from "@calcom/lib/csvUtils";
 import type { UserTableUser } from "@calcom/web/modules/users/components/UserTable/types";
+import type { Table } from "@tanstack/react-table";
 
 export const generateHeaderFromReactTable = (table: Table<UserTableUser>): string[] | null => {
   const headerGroups = table.getHeaderGroups();
@@ -58,22 +57,28 @@ export const generateCsvRawForMembersTable = (
     const { email, role, teams, username, attributes } = row;
 
     // Create a map of attributeId to array of values
-    const attributeMap = (attributes ?? []).reduce((acc, attr) => {
-      if (!acc[attr.attributeId]) {
-        acc[attr.attributeId] = [];
-      }
-      acc[attr.attributeId].push({
-        value: attr.value,
-        weight: attr.weight ?? undefined,
-      });
-      return acc;
-    }, {} as Record<string, { value: string; weight: number | undefined }[]>);
+    const attributeMap = (attributes ?? []).reduce(
+      (
+        acc: Record<string, (string | { value: string; weight?: number })[]>,
+        attr: { attributeId: string; value: string; weight?: number }
+      ) => {
+        if (!acc[attr.attributeId]) {
+          acc[attr.attributeId] = [];
+        }
+        acc[attr.attributeId].push({
+          value: attr.value,
+          weight: attr.weight ?? undefined,
+        });
+        return acc;
+      },
+      {} as Record<string, { value: string; weight: number | undefined }[]>
+    );
 
     const requiredColumns = [
       email, // Members column
       `${orgDomain}/${username}`, // Link column
       role, // Role column
-      sanitizeValue(teams.map((team) => team.name).join(",")), // Teams column
+      sanitizeValue(teams.map((team: { id: number; name: string }) => team.name).join(",")), // Teams column
     ];
 
     // Add attribute columns
@@ -82,7 +87,12 @@ export const generateCsvRawForMembersTable = (
       if (!attributes?.length) return "";
 
       return sanitizeValue(
-        attributes.map((attr) => (attr.weight ? `${attr.value} (${attr.weight}%)` : attr.value)).join(",")
+        attributes
+          .map((attr) => {
+            if (typeof attr === "string") return attr;
+            return attr.weight ? `${attr.value} (${attr.weight}%)` : attr.value;
+          })
+          .join(",")
       );
     });
 

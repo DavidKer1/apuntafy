@@ -5,7 +5,6 @@ import dayjs from "@calcom/dayjs";
 import type BaseEmail from "@calcom/emails/templates/_base-email";
 import type { EventNameObjectType } from "@calcom/features/eventtypes/lib/eventNaming";
 import { getEventName } from "@calcom/features/eventtypes/lib/eventNaming";
-import { OrganizationSettingsRepository } from "@calcom/features/organizations/repositories/OrganizationSettingsRepository";
 import { formatCalEvent } from "@calcom/lib/formatCalendarEvent";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
@@ -59,48 +58,17 @@ const sendEmail = (prepare: () => BaseEmail) => {
   });
 };
 
-export const fetchOrganizationEmailSettings = async (organizationId?: number | null | undefined) => {
-  if (!organizationId) return null;
-  const repo = new OrganizationSettingsRepository(prisma);
-  return await repo.getEmailSettings(organizationId);
+// Organization settings removed (team/org only feature)
+export const fetchOrganizationEmailSettings = async (_organizationId?: number | null | undefined) => {
+  return null;
 };
 
+// Organization email settings removed (team/org only feature) - only check event type metadata
 export const shouldSkipAttendeeEmailWithSettings = (
   metadata: EventTypeMetadata | undefined,
-  organizationSettings: Awaited<ReturnType<typeof fetchOrganizationEmailSettings>>,
-  emailType?: EmailType
+  _organizationSettings?: Awaited<ReturnType<typeof fetchOrganizationEmailSettings>>,
+  _emailType?: EmailType
 ): boolean => {
-  if (organizationSettings && emailType) {
-    switch (emailType) {
-      case EmailType.CONFIRMATION:
-        if (organizationSettings.disableAttendeeConfirmationEmail) return true;
-        break;
-      case EmailType.CANCELLATION:
-        if (organizationSettings.disableAttendeeCancellationEmail) return true;
-        break;
-      case EmailType.RESCHEDULED:
-        if (organizationSettings.disableAttendeeRescheduledEmail) return true;
-        break;
-      case EmailType.REQUEST:
-        if (organizationSettings.disableAttendeeRequestEmail) return true;
-        break;
-      case EmailType.REASSIGNED:
-        if (organizationSettings.disableAttendeeReassignedEmail) return true;
-        break;
-      case EmailType.AWAITING_PAYMENT:
-        if (organizationSettings.disableAttendeeAwaitingPaymentEmail) return true;
-        break;
-      case EmailType.RESCHEDULE_REQUEST:
-        if (organizationSettings.disableAttendeeRescheduleRequestEmail) return true;
-        break;
-      case EmailType.LOCATION_CHANGE:
-        if (organizationSettings.disableAttendeeLocationChangeEmail) return true;
-        break;
-      case EmailType.NEW_EVENT:
-        if (organizationSettings.disableAttendeeNewEventEmail) return true;
-        break;
-    }
-  }
   return !!metadata?.disableStandardEmails?.all?.attendee;
 };
 

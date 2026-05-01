@@ -32,16 +32,11 @@ vi.mock("next/navigation", async (importOriginal) => {
 });
 
 import "@calcom/dayjs/__mocks__";
-import "@calcom/features/auth/Turnstile";
+import "@calcom/web/modules/auth/components/Turnstile";
 
-import {
-  render,
-  screen,
-} from "@calcom/features/bookings/Booker/__tests__/test-utils";
-import type {
-  BookerProps,
-  WrappedBookerProps,
-} from "@calcom/features/bookings/Booker/types";
+import { render, screen } from "@calcom/features/bookings/Booker/__tests__/test-utils";
+import type { BookerProps } from "@calcom/features/bookings/Booker/types";
+import type { WrappedBookerProps } from "../types";
 import { Booker } from "./Booker";
 
 vi.mock("framer-motion", async (importOriginal) => {
@@ -62,10 +57,7 @@ vi.mock("./BookEventForm", () => ({
   }) => {
     console.log("BookEventForm Called", { isTimeslotUnavailable, onCancel });
     return (
-      <div
-        data-testid="book-event-form"
-        data-unavailable={isTimeslotUnavailable}
-      >
+      <div data-testid="book-event-form" data-unavailable={isTimeslotUnavailable}>
         Mock Book Event Form
         <button onClick={onCancel}>cancel</button>
       </div>
@@ -90,7 +82,7 @@ const mockEvent = {
   isPending: false,
 };
 
-vi.mock("@calcom/features/calendars/NoAvailabilityDialog", () => ({
+vi.mock("@calcom/features/calendars/components/NoAvailabilityDialog", () => ({
   default: () => {
     return null;
   },
@@ -99,10 +91,7 @@ vi.mock("@calcom/features/calendars/NoAvailabilityDialog", () => ({
 const mockSchedule = {
   data: {
     slots: {
-      "2024-01-01": [
-        { time: "2024-01-01T10:00:00Z" },
-        { time: "2024-01-01T11:00:00Z" },
-      ],
+      "2024-01-01": [{ time: "2024-01-01T10:00:00Z" }, { time: "2024-01-01T11:00:00Z" }],
     },
   },
   isPending: false,
@@ -145,8 +134,6 @@ const defaultProps = {
     handleBookEvent: vi.fn(),
     errors: {},
     loadingStates: {},
-    expiryTime: 0,
-    instantVideoMeetingUrl: "",
   },
   verifyEmail: {
     isEmailVerificationModalVisible: false,
@@ -177,13 +164,10 @@ const defaultProps = {
   isPlatform: false,
   orgBannerUrl: null,
   customClassNames: {},
-  areInstantMeetingParametersSet: false,
   userLocale: "en",
   hasValidLicense: true,
   isBookingDryRun: false,
   renderCaptcha: false,
-  onConnectNowInstantMeeting: vi.fn(),
-  onGoBackInstantMeeting: vi.fn(),
   onOverlayClickNoCalendar: vi.fn(),
   onClickOverlayContinue: vi.fn(),
   onOverlaySwitchStateChange: vi.fn(),
@@ -191,24 +175,21 @@ const defaultProps = {
   sessionUsername: null,
   rescheduleUid: null,
   hasSession: false,
-  isInstantMeeting: false,
 };
 
 describe("Booker", () => {
   beforeEach(() => {
     constantsScenarios.set({
       PUBLIC_QUICK_AVAILABILITY_ROLLOUT: "100",
-      POWERED_BY_URL: "https://go.apuntafy.com/booking",
-      APP_NAME: "Cal.com",
+      POWERED_BY_URL: "https://go.cal.com/booking",
+      APP_NAME: "Cal.diy",
     });
     vi.clearAllMocks();
   });
 
   it("should render null when in loading state", () => {
     const { container } = render(
-      <Booker
-        {...(defaultProps as unknown as BookerProps & WrappedBookerProps)}
-      />,
+      <Booker {...(defaultProps as unknown as BookerProps & WrappedBookerProps)} />,
       {
         mockStore: { state: "loading" },
       }
@@ -229,19 +210,14 @@ describe("Booker", () => {
       },
     };
 
-    render(
-      <Booker
-        {...(propsWithDryRun as unknown as BookerProps & WrappedBookerProps)}
-      />,
-      {
-        mockStore: {
-          state: "selecting_time",
-          selectedDate: "2024-01-01",
-          selectedTimeslot: "2024-01-01T10:00:00Z",
-          tentativeSelectedTimeslots: ["2024-01-01T10:00:00Z"],
-        },
-      }
-    );
+    render(<Booker {...(propsWithDryRun as unknown as BookerProps & WrappedBookerProps)} />, {
+      mockStore: {
+        state: "selecting_time",
+        selectedDate: "2024-01-01",
+        selectedTimeslot: "2024-01-01T10:00:00Z",
+        tentativeSelectedTimeslots: ["2024-01-01T10:00:00Z"],
+      },
+    });
     expect(screen.getByTestId("dry-run-message")).toBeInTheDocument();
   });
 
@@ -258,15 +234,9 @@ describe("Booker", () => {
       },
     };
 
-    render(
-      <Booker
-        {...(propsWithInvalidate as unknown as BookerProps &
-          WrappedBookerProps)}
-      />,
-      {
-        mockStore: { state: "booking" },
-      }
-    );
+    render(<Booker {...(propsWithInvalidate as unknown as BookerProps & WrappedBookerProps)} />, {
+      mockStore: { state: "booking" },
+    });
     screen.logTestingPlaygroundURL();
     // Trigger form cancel
     const cancelButton = screen.getByRole("button", { name: /cancel/i });
@@ -282,21 +252,13 @@ describe("Booker", () => {
         ...defaultProps,
         slots: {
           ...defaultProps.slots,
-          quickAvailabilityChecks: [
-            { utcStartIso: "2024-01-01T10:00:00Z", status: "unavailable" },
-          ],
+          quickAvailabilityChecks: [{ utcStartIso: "2024-01-01T10:00:00Z", status: "unavailable" }],
         },
       };
 
-      render(
-        <Booker
-          {...(propsWithQuickChecks as unknown as BookerProps &
-            WrappedBookerProps)}
-        />,
-        {
-          mockStore: { state: "booking" },
-        }
-      );
+      render(<Booker {...(propsWithQuickChecks as unknown as BookerProps & WrappedBookerProps)} />, {
+        mockStore: { state: "booking" },
+      });
       const bookEventForm = screen.getByTestId("book-event-form");
       await expect(bookEventForm).toHaveAttribute("data-unavailable", "true");
     });

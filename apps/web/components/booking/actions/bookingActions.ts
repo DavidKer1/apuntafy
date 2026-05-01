@@ -17,7 +17,6 @@ export interface BookingActionContext {
   isRecurring: boolean;
   isTabRecurring: boolean;
   isTabUnconfirmed: boolean;
-  isBookingFromRoutingForm: boolean;
   isDisabledCancelling: boolean;
   isDisabledRescheduling: boolean;
   isCalVideoLocation: boolean;
@@ -100,7 +99,6 @@ export function getEditEventActions(context: BookingActionContext): ActionType[]
     booking,
     isBookingInPast,
     isDisabledRescheduling,
-    isBookingFromRoutingForm,
     getSeatReferenceUid,
     isAttendee,
     t,
@@ -143,14 +141,6 @@ export function getEditEventActions(context: BookingActionContext): ActionType[]
           isDisabledRescheduling,
         }) || booking.seatsReferences.length > 0,
     },
-    isBookingFromRoutingForm
-      ? {
-          id: "reroute",
-          label: t("reroute"),
-          icon: "waypoints",
-          disabled: isActionDisabled("reroute", context),
-        }
-      : null,
     {
       id: "change_location",
       label: t("edit_location"),
@@ -237,7 +227,15 @@ export function shouldShowIndividualReportButton(context: BookingActionContext):
 }
 
 export function isActionDisabled(actionId: string, context: BookingActionContext): boolean {
-  const { booking, isBookingInPast, isDisabledRescheduling, isDisabledCancelling, isAttendee, isCancelled, isRejected } = context;
+  const {
+    booking,
+    isBookingInPast,
+    isDisabledRescheduling,
+    isDisabledCancelling,
+    isAttendee,
+    isCancelled,
+    isRejected,
+  } = context;
 
   switch (actionId) {
     case "reschedule":
@@ -270,7 +268,6 @@ export function isActionDisabled(actionId: string, context: BookingActionContext
       return !(isBookingInPast && booking.status === BookingStatus.ACCEPTED && context.isCalVideoLocation);
     case "charge_card":
       return context.cardCharged;
-    case "reroute":
     case "reassign":
     case "change_location":
     case "add_members":

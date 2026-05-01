@@ -1,9 +1,16 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
-import { IsBoolean, IsEnum, IsNotEmptyObject, IsOptional, IsString, ValidateNested } from "class-validator";
-
-import { SUCCESS_STATUS, ERROR_STATUS } from "@calcom/platform-constants";
+import { ERROR_STATUS, SUCCESS_STATUS } from "@calcom/platform-constants";
 import { OAuthClientType } from "@calcom/prisma/enums";
+import { ApiHideProperty, ApiProperty } from "@nestjs/swagger";
+import { Expose, Type } from "class-transformer";
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmptyObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 
 export class OAuth2ClientDto {
   @ApiProperty({
@@ -12,15 +19,22 @@ export class OAuth2ClientDto {
   })
   @IsString()
   @Expose({ name: "clientId" })
-  id!: string;
+  client_id!: string;
 
   @ApiProperty({
-    description: "The redirect URI for the OAuth client",
-    example: "https://example.com/callback",
+    description: "The redirect URIs for the OAuth client",
+    example: ["https://example.com/callback"],
+    type: [String],
   })
+  @IsArray()
+  @IsString({ each: true })
+  @Expose({ name: "redirectUris" })
+  redirect_uris!: string[];
+
+  @ApiHideProperty()
   @IsString()
-  @Expose()
-  redirectUri!: string;
+  @Expose({ name: "redirectUri" })
+  redirect_uri!: string;
 
   @ApiProperty({
     description: "The name of the OAuth client",
@@ -44,8 +58,8 @@ export class OAuth2ClientDto {
     example: false,
   })
   @IsBoolean()
-  @Expose()
-  isTrusted!: boolean;
+  @Expose({ name: "isTrusted" })
+  is_trusted!: boolean;
 
   @ApiProperty({
     description: "The type of OAuth client (CONFIDENTIAL or PUBLIC)",
@@ -54,7 +68,7 @@ export class OAuth2ClientDto {
   })
   @IsEnum(OAuthClientType)
   @Expose({ name: "clientType" })
-  type!: OAuthClientType;
+  client_type!: OAuthClientType;
 }
 
 export class OAuth2ClientResponseDto {

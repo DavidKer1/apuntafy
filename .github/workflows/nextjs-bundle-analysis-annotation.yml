@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   annotate:
-    if: github.repository == 'DavidKer1/apuntafy'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    if: always()
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/yarn-install

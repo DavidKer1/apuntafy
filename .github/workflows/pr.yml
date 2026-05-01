@@ -24,7 +24,7 @@ jobs:
   trust-check:
     if: github.repository == 'DavidKer1/apuntafy'
     name: Trust Check
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       actions: read
@@ -163,12 +163,11 @@ jobs:
     name: Prepare
     needs: [trust-check]
     if: needs.trust-check.outputs.is-trusted == 'true'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       pull-requests: read
     outputs:
       has-files-requiring-all-checks: ${{ steps.filter-exclusions.outputs.has-files-requiring-all-checks }}
-      has-companion: ${{ steps.filter-inclusions.outputs.has-companion }}
       has-api-v2-changes: ${{ steps.filter-inclusions.outputs.has-api-v2-changes }}
       has-prisma-changes: ${{ steps.filter-inclusions.outputs.has-prisma-changes }}
       commit-sha: ${{ steps.get_sha.outputs.commit-sha }}
@@ -197,22 +196,19 @@ jobs:
           filters: |
             has-files-requiring-all-checks:
               - '**'
-              - '!companion/**'
               - '!.vscode/**'
               - '!**/*.md'
               - '!**/*.mdx'
               - '!.github/CODEOWNERS'
               - '!docs/**'
               - '!help/**'
-              - '!apps/web/public/static/locales/**/common.json'
+              - '!packages/i18n/locales/**/common.json'
               - '!i18n.lock'
       - name: Check for specific path changes
         uses: dorny/paths-filter@v3
         id: filter-inclusions
         with:
           filters: |
-            has-companion:
-              - "companion/**"
             has-api-v2-changes:
               - "apps/api/v2/**"
               - "packages/platform-constants/**"
@@ -222,7 +218,6 @@ jobs:
               - "packages/platform-libraries/**"
               - "packages/trpc/**"
               - "packages/prisma/schema.prisma"
-              - "docs/api-reference/v2/**"
             has-prisma-changes:
               - "packages/prisma/schema.prisma"
               - "packages/prisma/migrations/**"
@@ -327,6 +322,13 @@ jobs:
     uses: ./.github/workflows/api-v2-unit-tests.yml
     secrets: inherit
 
+  security-audit:
+    name: Security Audit
+    needs: [prepare]
+    if: ${{ needs.prepare.outputs.has-files-requiring-all-checks == 'true' }}
+    uses: ./.github/workflows/security-audit.yml
+    secrets: inherit
+
   check-prisma-migrations:
     name: Check Prisma Migrations
     needs: [prepare]
@@ -343,13 +345,6 @@ jobs:
       DB_CACHE_HIT: ${{ needs.prepare.outputs.db-cache-hit }}
     secrets: inherit
 
-  build-api-v1:
-    name: Production builds
-    needs: [prepare, setup-db]
-    if: ${{ needs.prepare.outputs.run-e2e == 'true' && needs.prepare.outputs.has-files-requiring-all-checks == 'true' }}
-    uses: ./.github/workflows/api-v1-production-build.yml
-    secrets: inherit
-
   build-api-v2:
     name: Production builds
     needs: [prepare]
@@ -362,34 +357,6 @@ jobs:
     needs: [prepare]
     if: ${{ needs.prepare.outputs.run-e2e == 'true' && needs.prepare.outputs.has-files-requiring-all-checks == 'true' }}
     uses: ./.github/workflows/atoms-production-build.yml
-    secrets: inherit
-
-  build-docs:
-    name: Production builds
-    needs: [prepare]
-    if: ${{ needs.prepare.outputs.run-e2e == 'true' && needs.prepare.outputs.has-files-requiring-all-checks == 'true' }}
-    uses: ./.github/workflows/docs-build.yml
-    secrets: inherit
-
-  build-companion:
-    name: Companion builds
-    needs: [prepare]
-    if: needs.prepare.outputs.has-companion == 'true'
-    uses: ./.github/workflows/companion-build.yml
-    secrets: inherit
-
-  typecheck-companion:
-    name: Type Checks
-    needs: [prepare]
-    if: needs.prepare.outputs.has-companion == 'true'
-    uses: ./.github/workflows/companion-typecheck.yml
-    secrets: inherit
-
-  lint-companion:
-    name: Linters
-    needs: [prepare]
-    if: needs.prepare.outputs.has-companion == 'true'
-    uses: ./.github/workflows/companion-lint.yml
     secrets: inherit
 
   build:
@@ -411,13 +378,6 @@ jobs:
     needs: [prepare, build, setup-db]
     if: ${{ needs.prepare.outputs.run-e2e == 'true' && needs.prepare.outputs.has-files-requiring-all-checks == 'true' }}
     uses: ./.github/workflows/e2e.yml
-    secrets: inherit
-
-  check-api-v2-breaking-changes:
-    name: Check API v2 breaking changes
-    needs: [prepare]
-    if: ${{ needs.prepare.outputs.run-e2e == 'true' && needs.prepare.outputs.has-api-v2-changes == 'true' }}
-    uses: ./.github/workflows/check-api-v2-breaking-changes.yml
     secrets: inherit
 
   e2e-api-v2:
@@ -463,17 +423,12 @@ jobs:
         type-check,
         unit-test,
         api-v2-unit-test,
-        check-api-v2-breaking-changes,
+        security-audit,
         check-prisma-migrations,
         integration-test,
         build,
-        build-api-v1,
         build-api-v2,
         build-atoms,
-        build-docs,
-        build-companion,
-        typecheck-companion,
-        lint-companion,
         setup-db,
         e2e,
         e2e-api-v2,
@@ -482,7 +437,7 @@ jobs:
         e2e-app-store,
       ]
     if: always()
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     steps:
       - name: Fail if trust-check did not succeed
         run: |
@@ -505,13 +460,11 @@ jobs:
             needs.type-check.result != 'success' ||
             needs.unit-test.result != 'success' ||
             needs.api-v2-unit-test.result != 'success' ||
-            (needs.prepare.outputs.has-api-v2-changes == 'true' && needs.check-api-v2-breaking-changes.result != 'success') ||
+            needs.security-audit.result != 'success' ||
             (needs.prepare.outputs.has-prisma-changes == 'true' && needs.check-prisma-migrations.result != 'success') ||
               needs.build.result != 'success' ||
-              needs.build-api-v1.result != 'success' ||
               needs.build-api-v2.result != 'success' ||
               needs.build-atoms.result != 'success' ||
-              needs.build-docs.result != 'success' ||
               needs.setup-db.result != 'success' ||
               needs.integration-test.result != 'success' ||
               needs.e2e.result != 'success' ||
@@ -519,13 +472,5 @@ jobs:
               needs.e2e-embed.result != 'success' ||
               needs.e2e-embed-react.result != 'success' ||
               needs.e2e-app-store.result != 'success'
-            )
-          ) ||
-          (
-            needs.prepare.outputs.has-companion == 'true' &&
-            (
-              needs.build-companion.result != 'success' ||
-              needs.typecheck-companion.result != 'success' ||
-              needs.lint-companion.result != 'success'
             )
           )

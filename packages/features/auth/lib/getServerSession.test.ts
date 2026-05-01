@@ -1,7 +1,7 @@
 import type { NextApiRequest } from "next";
 import type { RequestMethod } from "node-mocks-http";
 import { createMocks } from "node-mocks-http";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Use vi.hoisted to import mocks before vi.mock hoisting
 const {
@@ -9,8 +9,6 @@ const {
   resetPrismaMock,
   createLoggerMock,
   createPrismaMock,
-  createLicenseKeyMock,
-  createDeploymentRepositoryMock,
   createUserRepositoryMock,
   createAvatarUrlMock,
   createSafeStringifyMock,
@@ -23,8 +21,6 @@ const {
 
 vi.mock("@calcom/lib/logger", createLoggerMock);
 vi.mock("@calcom/prisma", createPrismaMock);
-vi.mock("@calcom/ee/common/server/LicenseKeyService", createLicenseKeyMock);
-vi.mock("@calcom/features/ee/deployment/repositories/DeploymentRepository", createDeploymentRepositoryMock);
 vi.mock("@calcom/features/users/repositories/UserRepository", createUserRepositoryMock);
 vi.mock("@calcom/lib/getAvatarUrl", createAvatarUrlMock);
 vi.mock("@calcom/lib/safeStringify", createSafeStringifyMock);
@@ -64,17 +60,14 @@ describe("getServerSession", () => {
   });
 
   describe("User ID Validation", () => {
-    it.each(["", "invalid", "0", "-1"])(
-      "returns null when token.sub is invalid (%s)",
-      async (sub) => {
-        setupGetTokenMock(createMockToken({ sub }));
+    it.each(["", "invalid", "0", "-1"])("returns null when token.sub is invalid (%s)", async (sub) => {
+      setupGetTokenMock(createMockToken({ sub }));
 
-        const result = await getServerSession({ req: createMockRequest() });
+      const result = await getServerSession({ req: createMockRequest() });
 
-        expect(result).toBeNull();
-        expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
-      }
-    );
+      expect(result).toBeNull();
+      expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    });
   });
 
   describe("User Lookup", () => {

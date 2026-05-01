@@ -1,14 +1,12 @@
-import { z } from "zod";
-
 import { createPaymentLink } from "@calcom/app-store/stripepayment/lib/client";
 import { sendAwaitingPaymentEmailAndSMS } from "@calcom/emails/email-manager";
 import { getBooking } from "@calcom/features/bookings/lib/payment/getBooking";
 import { AttendeeRepository } from "@calcom/features/bookings/repositories/AttendeeRepository";
-import stripe from "@calcom/features/ee/payments/server/stripe";
+import { PrismaBookingPaymentRepository } from "@calcom/features/bookings/repositories/PrismaBookingPaymentRepository";
 import logger from "@calcom/lib/logger";
 import { safeStringify } from "@calcom/lib/safeStringify";
-import { PrismaBookingPaymentRepository } from "@calcom/lib/server/repository/PrismaBookingPaymentRepository";
 import prisma from "@calcom/prisma";
+import { z } from "zod";
 
 const log = logger.getSubLogger({ prefix: ["sendAwaitingPaymentEmail"] });
 
@@ -44,32 +42,14 @@ export async function sendAwaitingPaymentEmail(payload: string): Promise<void> {
       return;
     }
 
-    // verify stripe payment intent status directly in case of a delayed webhook scenario
-    if (payment.externalId && payment.app?.slug === "stripe") {
-      try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(payment.externalId);
-        if (paymentIntent.status === "succeeded") {
-          log.debug(
-            `Stripe PaymentIntent ${payment.externalId} already succeeded, skipping email (webhook may be delayed)`
-          );
-          return;
-        }
-      } catch (error) {
-        log.warn(
-          `Could not verify Stripe PaymentIntent status for ${payment.externalId}, continuing with email send`,
-          safeStringify(error)
-        );
-      }
-    }
-
     // filter attendees if this is for a specific seat
     let attendeesToEmail = evt.attendees;
     if (attendeeSeatId) {
       const attendeeRepository = new AttendeeRepository(prisma);
-      const seatAttendees = await attendeeRepository.findByBookingIdAndSeatReference(
+      const seatAttendees = await attendeeRepository.findByBookingIdAndSeatReference({
         bookingId,
-        attendeeSeatId
-      );
+        seatReferenceUid: attendeeSeatId,
+      });
       const seatEmails = new Set(seatAttendees.map((a) => (a.email || "").toLowerCase()));
       attendeesToEmail = evt.attendees.filter((attendee) =>
         seatEmails.has((attendee.email || "").toLowerCase())

@@ -1,5 +1,5 @@
 import { useIsPlatform } from "@calcom/atoms/hooks/useIsPlatform";
-import useLockedFieldsManager from "@calcom/features/ee/managed-event-types/hooks/useLockedFieldsManager";
+import type { LocationCustomClassNames } from "@calcom/features/eventtypes/components/locations/types";
 import type {
   EventTypeSetupProps,
   FormValues,
@@ -16,17 +16,22 @@ import turndown from "@calcom/lib/turndownService";
 import { SchedulingType } from "@calcom/prisma/enums";
 import classNames from "@calcom/ui/classNames";
 import { Editor } from "@calcom/ui/components/editor";
-import { CheckboxField, Label, Select, SettingsToggle, TextAreaField, TextField } from "@calcom/ui/components/form";
+import {
+  CheckboxField,
+  Label,
+  Select,
+  SettingsToggle,
+  TextAreaField,
+  TextField,
+} from "@calcom/ui/components/form";
 import { Skeleton } from "@calcom/ui/components/skeleton";
 import { Tooltip } from "@calcom/ui/components/tooltip";
-
 import HostLocations from "@calcom/web/modules/event-types/components/locations/HostLocations";
 import Locations from "@calcom/web/modules/event-types/components/locations/Locations";
 import { useState } from "react";
 import type { Control, FormState, UseFormGetValues, UseFormSetValue } from "react-hook-form";
 import { Controller, useFormContext } from "react-hook-form";
 import type { MultiValue } from "react-select";
-import type { LocationCustomClassNames } from "../../locations/types";
 
 export type EventSetupTabCustomClassNames = {
   wrapper?: string;
@@ -96,8 +101,10 @@ export const EventSetupTab = (
     selectedMultipleDuration.find((opt) => opt.value === formMethods.getValues("length")) ?? null
   );
 
-  const { isChildrenManagedEventType, isManagedEventType, shouldLockIndicator, shouldLockDisableProps } =
-    useLockedFieldsManager({ eventType, translate: t, formMethods });
+  const isManagedEventType = false;
+  const isChildrenManagedEventType = false;
+  const shouldLockDisableProps = (_field: string) => ({ disabled: false, LockedIcon: false as const, isLocked: false });
+  const shouldLockIndicator = (_field: string) => false;
 
   const lengthLockedProps = shouldLockDisableProps("length");
   const descriptionLockedProps = shouldLockDisableProps("description");
@@ -143,10 +150,12 @@ export const EventSetupTab = (
                 </Label>
                 <Editor
                   getText={() => md.render(formMethods.getValues("description") || "")}
-                  setText={(value: string) =>
-                    formMethods.setValue("description", turndown(value), { shouldDirty: true })
-                  }
-                  excludedToolbarItems={["blockType"]}
+                  setText={(value: string) => {
+                    // Clean up non-breaking spaces
+                    const cleanedValue = value.replace(/&nbsp;/g, " ");
+                    const markdownValue = turndown(cleanedValue);
+                    formMethods.setValue("description", markdownValue, { shouldDirty: true });
+                  }}
                   placeholder={t("quick_video_meeting")}
                   editable={!descriptionLockedProps.disabled}
                   firstRender={firstRender}
@@ -169,7 +178,7 @@ export const EventSetupTab = (
             className={classNames("pl-0", customClassNames?.titleSection?.urlInput?.input)}
             addOnLeading={
               isPlatform ? undefined : (
-                <span className="inline-block min-w-0 max-w-24 overflow-hidden text-ellipsis whitespace-nowrap md:max-w-56">
+                <span className="flex items-center h-full min-w-0 max-w-24 overflow-hidden text-ellipsis whitespace-nowrap md:max-w-56 text-sm leading-[1.5] relative top-[1px]">
                   {urlPrefix}/
                   {!isManagedEventType
                     ? team
@@ -406,7 +415,7 @@ export const EventSetupTab = (
             </div>
           </div>
         </Tooltip>
-        {eventType.schedulingType === SchedulingType.ROUND_ROBIN && (
+        {eventType.schedulingType === SchedulingType.ROUND_ROBIN && !isPlatform && (
           <HostLocations eventTypeId={eventType.id} locationOptions={props.locationOptions} />
         )}
       </div>

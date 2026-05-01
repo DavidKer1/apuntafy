@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - develop
+      - main
 
 permissions:
   actions: write
@@ -48,8 +48,8 @@ env:
 
 jobs:
   analyze:
-    if: github.repository == 'DavidKer1/apuntafy'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    if: always()
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +72,11 @@ jobs:
           path: apps/web/.next/analyze/__bundle_analysis.json
 
       - name: Delete cached build
-        uses: useblacksmith/cache-delete@v1
-        with:
-          key: prod-build-main-
-          prefix: "true"
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          for key in $(gh actions-cache list -R ${{ github.repository }} --key "prod-build-main-" --limit 100 | cut -f1); do
+            gh actions-cache delete "$key" -R ${{ github.repository }} --confirm
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

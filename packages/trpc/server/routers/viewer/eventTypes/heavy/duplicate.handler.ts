@@ -40,7 +40,6 @@ export const duplicateHandler = async ({ ctx, input }: DuplicateOptions) => {
         },
         hosts: true,
         team: true,
-        workflows: true,
         webhooks: true,
         hashedLink: true,
         destinationCalendar: true,
@@ -92,7 +91,6 @@ export const duplicateHandler = async ({ ctx, input }: DuplicateOptions) => {
       eventTypeColor,
       customReplyToEmail,
       metadata,
-      workflows,
       hashedLink,
       destinationCalendar,
 
@@ -202,15 +200,6 @@ export const duplicateHandler = async ({ ctx, input }: DuplicateOptions) => {
       });
     }
 
-    if (workflows.length > 0) {
-      const relationCreateData = workflows.map((workflow) => {
-        return { eventTypeId: newEventType.id, workflowId: workflow.workflowId };
-      });
-
-      await prisma.workflowsOnEventTypes.createMany({
-        data: relationCreateData,
-      });
-    }
     if (destinationCalendar) {
       await setDestinationCalendarHandler({
         ctx,
